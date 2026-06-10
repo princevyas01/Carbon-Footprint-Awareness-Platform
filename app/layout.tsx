@@ -51,8 +51,20 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${spaceGrotesk.variable} ${inter.variable} ${jetBrainsMono.variable} dark`}
+      className={`${spaceGrotesk.variable} ${inter.variable} ${jetBrainsMono.variable}`}
     >
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                var theme = localStorage.getItem('carbonlens_theme') || 'dark';
+                document.documentElement.classList.add(theme);
+              })();
+            `
+          }}
+        />
+      </head>
       <body className="antialiased">
         <CarbonProvider>
           <AppClientLayout>{children}</AppClientLayout>

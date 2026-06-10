@@ -1,24 +1,50 @@
 'use client';
 
-import React from 'react';
-import { Sun, Moon } from 'lucide-react';
-import { useTheme } from '../../hooks/useTheme';
+import { useEffect, useState } from 'react';
 
 export default function ThemeToggle() {
-  const { toggleTheme, isDark } = useTheme();
+  const [isDark, setIsDark] = useState(true);
+
+  // On mount: read saved theme
+  useEffect(() => {
+    const saved = localStorage.getItem('carbonlens_theme');
+    if (saved === 'light') {
+      setIsDark(false);
+      document.documentElement.classList.remove('dark');
+      document.documentElement.classList.add('light');
+    } else {
+      setIsDark(true);
+      document.documentElement.classList.remove('light');
+      document.documentElement.classList.add('dark');
+    }
+  }, []);
+
+  const toggle = () => {
+    const newTheme = isDark ? 'light' : 'dark';
+    setIsDark(!isDark);
+
+    // Apply IMMEDIATELY to <html> element — no reload needed
+    if (newTheme === 'light') {
+      document.documentElement.classList.remove('dark');
+      document.documentElement.classList.add('light');
+    } else {
+      document.documentElement.classList.remove('light');
+      document.documentElement.classList.add('dark');
+    }
+
+    // Persist
+    localStorage.setItem('carbonlens_theme', newTheme);
+  };
 
   return (
     <button
-      onClick={toggleTheme}
-      className="p-2 rounded-lg hover:bg-white/10 dark:hover:bg-white/5 border border-transparent hover:border-border transition-all duration-200"
-      aria-label={`Switch to ${isDark ? 'light' : 'dark'} theme`}
-      title={`Switch to ${isDark ? 'light' : 'dark'} theme`}
+      onClick={toggle}
+      aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+      className="w-10 h-10 rounded-full flex items-center justify-center
+                 border border-white/10 hover:border-[#00FF87]/50
+                 transition-all duration-200 text-lg"
     >
-      {isDark ? (
-        <Sun className="h-5 w-5 text-green animate-pulse-slow" />
-      ) : (
-        <Moon className="h-5 w-5 text-[#0D1117]" />
-      )}
+      {isDark ? '☀️' : '🌙'}
     </button>
   );
 }
