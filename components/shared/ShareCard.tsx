@@ -183,8 +183,8 @@ export default function ShareCard({
           <h2 className="text-white font-bold text-lg">Your Impact Card</h2>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-white text-xl"
-            aria-label="Close share card"
+            className="text-zinc-300 hover:text-white text-xl"
+            aria-label="Close modal"
           >
             ×
           </button>

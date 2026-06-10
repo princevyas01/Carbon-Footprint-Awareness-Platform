@@ -8,6 +8,7 @@ import { Search, Info, ChevronDown, ChevronUp, Zap } from 'lucide-react';
 export default function InsightsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortAsc, setSortAsc] = useState<boolean | null>(null); // true = asc, false = desc, null = none
+  const [isSourcesOpen, setIsSourcesOpen] = useState(false);
 
   const handleSort = () => {
     setSortAsc((prev) => (prev === null ? false : prev === false ? true : null));
@@ -148,7 +149,7 @@ export default function InsightsPage() {
         </div>
 
         {/* General Info Note */}
-        <div className="flex gap-2 p-4 rounded-2xl bg-white/5 border border-border text-xs text-muted font-body">
+        <div className="flex gap-2 p-4 rounded-2xl bg-white/5 border border-border text-xs text-zinc-300 font-body">
           <Info className="h-4 w-4 text-green shrink-0 mt-0.5" />
           <p className="leading-relaxed">
             States relying heavily on hydroelectric, solar, or nuclear generation (like Kerala or Karnataka) 
@@ -157,6 +158,68 @@ export default function InsightsPage() {
             especially impactful in fossil-heavy states!
           </p>
         </div>
+      </section>
+
+      {/* Data Sources Collapsible Section */}
+      <section className="space-y-4">
+        <button
+          onClick={() => setIsSourcesOpen(!isSourcesOpen)}
+          className="w-full flex items-center justify-between p-5 glass-panel rounded-2xl text-left font-display text-base font-bold text-frost hover:border-white/20 transition-all"
+          aria-expanded={isSourcesOpen}
+          aria-controls="data-sources-table"
+        >
+          <span>📚 Data Sources & Methodology</span>
+          {isSourcesOpen ? (
+            <ChevronUp className="h-5 w-5 text-green" />
+          ) : (
+            <ChevronDown className="h-5 w-5 text-green" />
+          )}
+        </button>
+
+        {isSourcesOpen && (
+          <div
+            id="data-sources-table"
+            className="glass-panel rounded-2xl overflow-hidden p-4 animate-fade-in-up"
+          >
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse font-body text-xs text-frost">
+                <thead>
+                  <tr className="border-b border-border bg-white/5 text-[10px] font-display font-semibold text-zinc-300 uppercase tracking-wider">
+                    <th scope="col" className="p-3">Category</th>
+                    <th scope="col" className="p-3">Factor</th>
+                    <th scope="col" className="p-3 text-right">Value</th>
+                    <th scope="col" className="p-3">Source</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[
+                    { cat: 'Energy', factor: 'India grid average', val: '0.82 kg CO₂/kWh', src: 'CEA Annual Report 2023' },
+                    { cat: 'Energy', factor: 'Karnataka grid', val: '0.48 kg CO₂/kWh', src: 'CEA Annual Report 2023' },
+                    { cat: 'Energy', factor: 'Uttar Pradesh grid', val: '0.91 kg CO₂/kWh', src: 'CEA Annual Report 2023' },
+                    { cat: 'Transport', factor: 'Petrol car', val: '0.21 kg CO₂/km', src: 'IPCC AR6 (2022)' },
+                    { cat: 'Transport', factor: 'Metro/Rail', val: '0.031 kg CO₂/km', src: 'IEA Transport Data' },
+                    { cat: 'Transport', factor: 'Electric Vehicle', val: '0.10 kg CO₂/km', src: 'IPCC AR6 + CEA' },
+                    { cat: 'Food', factor: 'Beef meal', val: '6.61 kg CO₂/serving', src: 'Poore & Nemecek 2018' },
+                    { cat: 'Food', factor: 'Vegan meal', val: '0.15 kg CO₂/serving', src: 'Poore & Nemecek 2018' },
+                    { cat: 'Shopping', factor: 'New clothing', val: '0.012 kg CO₂/₹', src: 'Ellen MacArthur Foundation' },
+                    { cat: 'Travel', factor: 'Short-haul flight', val: '0.255 kg CO₂/km', src: 'ICAO Calculator' },
+                    { cat: 'Baseline', factor: 'India per-capita', val: '1.9T CO₂/year', src: 'World Bank 2022' }
+                  ].map((row, idx) => (
+                    <tr
+                      key={idx}
+                      className="border-b border-border/40 last:border-0 hover:bg-white/5 transition-colors font-body"
+                    >
+                      <td className="p-3 font-semibold">{row.cat}</td>
+                      <td className="p-3 text-zinc-300">{row.factor}</td>
+                      <td className="p-3 text-right font-data font-semibold text-green">{row.val}</td>
+                      <td className="p-3 text-zinc-300">{row.src}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
       </section>
     </div>
   );

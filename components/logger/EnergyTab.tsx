@@ -93,6 +93,11 @@ export default function EnergyTab({ onSuccess }: EnergyTabProps) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      <p className="text-sm text-zinc-300 mb-3">
+        {"India's"} grid emits 0.82 kg CO₂/kWh on average, but
+        varies by state — Karnataka (0.48) is nearly half
+        of UP (0.91). (Source: CEA Annual Report 2023)
+      </p>
       {/* State Selector */}
       <div className="flex flex-col space-y-1">
         <label htmlFor="state-select" className="text-xs text-muted font-body">

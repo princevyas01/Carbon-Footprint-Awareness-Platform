@@ -45,6 +45,11 @@ export default function ShoppingTab({ onSuccess }: ShoppingTabProps) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      <p className="text-sm text-zinc-300 mb-3">
+        Manufacturing new clothing emits 0.012 kg CO₂/₹ spent.
+        Choosing second-hand reduces this by 80%.
+        (Source: Ellen MacArthur Foundation)
+      </p>
       <div className="grid grid-cols-2 gap-3">
         {/* Shopping Category */}
         <div className="flex flex-col space-y-1">

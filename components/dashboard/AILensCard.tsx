@@ -221,14 +221,14 @@ export default function AILensCard() {
         );
       case 'cached':
         return (
-          <span className="text-[10px] bg-gray-500/10 border border-gray-500/30 text-gray-400 px-2 py-0.5 rounded-full flex items-center gap-1.5">
+          <span className="text-[10px] bg-gray-500/10 border border-gray-500/30 text-zinc-300 px-2 py-0.5 rounded-full flex items-center gap-1.5">
             <span className="h-1.5 w-1.5 rounded-full bg-gray-400"></span>
             Cached
           </span>
         );
       case 'rate-limited':
         return (
-          <span className="text-[10px] bg-gray-500/10 border border-gray-500/30 text-gray-400 px-2 py-0.5 rounded-full flex items-center gap-1.5">
+          <span className="text-[10px] bg-gray-500/10 border border-gray-500/30 text-zinc-300 px-2 py-0.5 rounded-full flex items-center gap-1.5">
             <span className="h-1.5 w-1.5 rounded-full bg-gray-400"></span>
             Rate limited — try in 5 min
           </span>

@@ -47,6 +47,11 @@ export default function TravelTab({ onSuccess }: TravelTabProps) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      <p className="text-sm text-zinc-300 mb-3">
+        A Mumbai–Delhi flight emits ~293 kg CO₂ per passenger
+        — equivalent to 3 months of metro commuting.
+        (Source: ICAO Carbon Calculator)
+      </p>
       {/* Route Selectors */}
       <div className="grid grid-cols-2 gap-3">
         {/* From City */}

@@ -36,6 +36,11 @@ export default function TransportTab({ onSuccess }: TransportTabProps) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      <p className="text-sm text-zinc-300 mb-3">
+        Transport accounts for ~30% of {"India's"} urban carbon
+        emissions. Switching from a petrol car to metro saves
+        up to 94% CO₂ per km. (Source: IEA, IPCC AR6)
+      </p>
       {/* Vehicle Type */}
       <div className="flex flex-col space-y-1">
         <label htmlFor="vehicle-type" className="text-xs text-muted font-body">

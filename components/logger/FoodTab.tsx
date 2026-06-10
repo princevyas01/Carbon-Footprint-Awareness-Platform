@@ -62,6 +62,11 @@ export default function FoodTab({ onSuccess }: FoodTabProps) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      <p className="text-sm text-zinc-300 mb-3">
+        Food production causes ~26% of global emissions.
+        A beef meal produces 44× more CO₂ than a vegan thali.
+        (Source: Poore & Nemecek, Science 2018)
+      </p>
       {/* Quick-log button */}
       <div className="flex justify-end">
         <button

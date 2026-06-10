@@ -51,7 +51,7 @@ export default function NotificationBell() {
       <button
         onClick={toggleDropdown}
         className="relative p-2 rounded-lg hover:bg-white/10 dark:hover:bg-white/5 border border-transparent hover:border-border transition-all duration-200"
-        aria-label={`Open notifications, ${unreadCount} unread`}
+        aria-label="Open notifications"
         aria-expanded={isOpen}
         aria-haspopup="true"
       >

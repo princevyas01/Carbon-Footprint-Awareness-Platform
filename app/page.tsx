@@ -15,6 +15,15 @@ import { useEcoScore } from '../hooks/useEcoScore';
 import { useCarbon } from '../context/CarbonContext';
 import { Share2 } from 'lucide-react';
 
+interface BeforeInstallPromptEvent extends Event {
+  readonly platforms: string[];
+  readonly userChoice: Promise<{
+    outcome: 'accepted' | 'dismissed';
+    platform: string;
+  }>;
+  prompt(): Promise<void>;
+}
+
 export default function DashboardPage() {
   const { state } = useCarbon();
   const {
@@ -30,6 +39,41 @@ export default function DashboardPage() {
 
   const [displayTotal, setDisplayTotal] = useState(0);
   const [isShareOpen, setIsShareOpen] = useState(false);
+  const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [isDismissed, setIsDismissed] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const dismissed = localStorage.getItem('carbonlens_pwa_dismissed');
+      if (dismissed === 'true') {
+        setIsDismissed(true);
+      }
+
+      const handleBeforeInstallPrompt = (e: Event) => {
+        e.preventDefault();
+        setInstallPrompt(e as BeforeInstallPromptEvent);
+      };
+
+      window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      return () => {
+        window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      };
+    }
+  }, []);
+
+  const handleInstall = async () => {
+    if (!installPrompt) return;
+    installPrompt.prompt();
+    const { outcome } = await installPrompt.userChoice;
+    if (outcome === 'accepted') {
+      setInstallPrompt(null);
+    }
+  };
+
+  const handleDismiss = () => {
+    localStorage.setItem('carbonlens_pwa_dismissed', 'true');
+    setIsDismissed(true);
+  };
 
   // Big stat count-up animation on mount (800ms)
   useEffect(() => {
@@ -75,6 +119,29 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-8 pb-12">
+      {/* PWA Install Banner */}
+      {installPrompt && !isDismissed && (
+        <div className="p-4 bg-green/10 border border-green/30 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4 animate-fade-in-up">
+          <span className="font-body text-sm text-frost text-center sm:text-left">
+            📱 Install CarbonLens on your phone for offline tracking
+          </span>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleInstall}
+              className="px-4 py-2 bg-green hover:bg-green-dim text-void font-display text-xs font-bold rounded-xl transition-all"
+            >
+              Install
+            </button>
+            <button
+              onClick={handleDismiss}
+              className="px-4 py-2 bg-white/5 hover:bg-white/10 border border-border text-frost font-display text-xs font-semibold rounded-xl transition-all"
+            >
+              Dismiss
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Greeting Header */}
       {state.activeUser && (
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -100,7 +167,7 @@ export default function DashboardPage() {
         <button
           onClick={() => setIsShareOpen(true)}
           className="absolute top-4 right-4 p-2 bg-white/5 border border-border hover:bg-white/10 text-frost rounded-xl flex items-center gap-1.5 font-display text-xs transition-all duration-200"
-          aria-label="Open Share Card Modal"
+          aria-label="Share impact card"
         >
           <Share2 className="h-4 w-4 text-green" /> Share Impact
         </button>

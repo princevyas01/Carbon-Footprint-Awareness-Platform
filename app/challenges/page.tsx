@@ -153,7 +153,8 @@ export default function ChallengesPage() {
                                 ? 'bg-white/5 border-muted hover:border-green text-frost font-bold'
                                 : 'bg-white/5 border-border hover:border-muted text-muted'
                             }`}
-                            aria-label={`Day ${idx + 1}: ${formatDateDisplay(dateStr)}. Click to toggle verification.`}
+                            aria-label={`Day ${idx + 1}: ${dateStr}. Click to toggle.`}
+                            aria-pressed={isChecked}
                           >
                             <span className="text-[9px] font-data block uppercase">Day {idx + 1}</span>
                             <span className="text-[10px] font-semibold leading-none mt-1">
