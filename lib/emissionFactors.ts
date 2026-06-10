@@ -1,4 +1,9 @@
 /**
+ * @file emissionFactors.ts
+ * @description Centralized emission factors and multipliers for carbon footprint calculations.
+ */
+
+/**
  * CarbonLens Emission Factors
  * Values are in kg CO2 equivalent.
  */

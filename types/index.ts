@@ -1,5 +1,7 @@
+/** Represents the different carbon footprint categories */
 export type Category = 'transport' | 'food' | 'energy' | 'shopping' | 'travel';
 
+/** User's baseline configuration and onboarding status */
 export interface UserProfile {
   transport: string;
   diet: string;
@@ -10,6 +12,7 @@ export interface UserProfile {
   isOnboarded: boolean;
 }
 
+/** A single logged activity entry with CO2 calculation */
 export interface LogEntry {
   id: string;
   category: Category;
@@ -42,9 +45,12 @@ export interface LogEntry {
   };
 }
 
+/** Difficulty levels for challenges */
 export type ChallengeDifficulty = 'Easy' | 'Medium' | 'Hard';
+/** Current progress status of a challenge */
 export type ChallengeStatus = 'Available' | 'Active' | 'Completed';
 
+/** A sustainability challenge that users can track and complete */
 export interface Challenge {
   id: string;
   name: string;
@@ -60,6 +66,7 @@ export interface Challenge {
   streak?: number;
 }
 
+/** A user notification banner or alert */
 export interface Notification {
   id: string;
   icon: string;
@@ -68,6 +75,7 @@ export interface Notification {
   read: boolean;
 }
 
+/** A tier title representing the user's progress in eco-consciousness */
 export type Level =
   | 'Carbon Rookie'
   | 'Green Sprout'
@@ -75,6 +83,7 @@ export type Level =
   | 'Solar Champion'
   | 'Carbon Zero Hero';
 
+/** Response shape from the Gemini AI insight endpoint */
 export interface InsightResponse {
   observation: string;
   tip: string;
@@ -82,6 +91,7 @@ export interface InsightResponse {
   saved_potential_kg: number;
 }
 
+/** Summarized monthly performance and challenge metrics */
 export interface MonthlyStats {
   month: string;
   totalCo2: number;
@@ -90,6 +100,7 @@ export interface MonthlyStats {
   challengesDone: number;
 }
 
+/** Monthly CO2 totals broken down by category in kg */
 export interface CategoryBreakdown {
   transport: number;
   food: number;
@@ -98,13 +109,16 @@ export interface CategoryBreakdown {
   travel: number;
 }
 
+/** A data point used to plot CO2 consumption on a chart */
 export interface ChartDataPoint {
   name: string;
   co2: number;
 }
 
+/** Visual theme selected by the user */
 export type Theme = 'dark' | 'light';
 
+/** Represents a single user's complete profile and data */
 export interface User {
   id: string;
   name: string;

@@ -119,3 +119,42 @@ Verify production compiling and asset bundling:
 npm run build
 npm run start
 ```
+
+---
+
+## Architecture
+```mermaid
+graph TD
+    A[User] --> B[Dashboard]
+    B --> C[CarbonContext]
+    C --> D[localStorage]
+    B --> E[/api/insight]
+    E --> F[Gemini API]
+    A --> G[Activity Logger]
+    G --> C
+    C --> H[Charts & KPIs]
+```
+
+## Data Sources
+| Data | Value | Source |
+|------|-------|--------|
+| India grid average | 0.82 kg CO2/kWh | CEA Annual Report 2023 |
+| India per-capita average | 1.9T/year | World Bank 2022 |
+| Petrol car emission | 0.21 kg CO2/km | IPCC AR6 |
+| Beef meal emission | 6.61 kg CO2/serving | Poore & Nemecek 2018 |
+| Metro emission | 0.031 kg CO2/km | IEA Transport Data |
+| Flight emission | 0.255 kg CO2/km | ICAO Carbon Calculator |
+
+## Security Measures
+- Gemini API key used server-side only (never exposed to client)
+- All numeric inputs validated and clamped to realistic ranges
+- Rate limiting on AI endpoint (1 request per 5 minutes)
+- Content Security Policy headers configured in next.config.js
+- No dangerouslySetInnerHTML used anywhere in codebase
+
+## Assumptions
+1. India grid average of 0.82 kg CO2/kWh used when state is unknown
+2. India per-capita average: 158 kg CO2/month (World Bank 2022)
+3. Spend-based shopping factors estimated from lifecycle assessment literature
+4. Flight distances calculated for major Indian city pairs only
+5. All data stored locally on device — no backend database

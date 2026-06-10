@@ -1,3 +1,8 @@
+/**
+ * @file cityDistances.ts
+ * @description Provides distance database and lookup between major Indian cities.
+ */
+
 // List of 30 major Indian cities
 export const INDIAN_CITIES = [
   'Ahmedabad',
@@ -70,17 +75,20 @@ const CITY_PAIRS: Record<string, number> = {
 
 /**
  * Returns distance in km between two Indian cities.
- * If not in table, returns a reasonable default based on coordinates or avg. distance (e.g., 1000km).
+ * @param city1 - The first city name
+ * @param city2 - The second city name
+ * @returns The distance between the cities in kilometers
  */
 export function getCityDistance(city1: string, city2: string): number {
   if (!city1 || !city2) return 0;
   if (city1 === city2) return 0;
 
+  // Sort alphabetically to ensure a symmetric lookup so order of cities does not matter
   const key = [city1, city2].sort().join('-');
   if (CITY_PAIRS[key] !== undefined) {
     return CITY_PAIRS[key];
   }
 
-  // Fallback distance based on a general average of major interstate distances in India
+  // Return a generic fallback distance representing average intercity distance when not in database
   return 1000;
 }

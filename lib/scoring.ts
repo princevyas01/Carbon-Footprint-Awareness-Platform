@@ -1,3 +1,8 @@
+/**
+ * @file scoring.ts
+ * @description Scoring levels and thresholds calculation.
+ */
+
 import { Level } from '../types';
 
 export const LEVEL_THRESHOLDS = {
@@ -19,6 +24,8 @@ export const SCORING_EVENTS = {
 
 /**
  * Returns level name, icon, and progress details based on score (0 - 1000).
+ * @param score - The user's current score
+ * @returns An object containing the level details and progress percentages
  */
 export function getLevelDetails(score: number): {
   level: Level;
@@ -29,6 +36,7 @@ export function getLevelDetails(score: number): {
   pointsInCurrentLevel: number;
   pointsRequiredForNextLevel: number;
 } {
+  // Clamp score between 0 and 1000 to keep it within the established level system limits
   const clampedScore = Math.min(Math.max(score, 0), 1000);
 
   let details = LEVEL_THRESHOLDS.ROOKIE;
@@ -44,6 +52,7 @@ export function getLevelDetails(score: number): {
 
   const range = details.max - details.min + 1;
   const pointsInCurrentLevel = clampedScore - details.min;
+  // Ensure the progress percentage is strictly within 0-100 to avoid display overflow in the UI
   const progressPercent = Math.min(Math.max((pointsInCurrentLevel / range) * 100, 0), 100);
 
   return {
@@ -59,7 +68,9 @@ export function getLevelDetails(score: number): {
 
 /**
  * Detects if a score change triggers a level up.
- * Returns the new level name if a level up occurred, otherwise null.
+ * @param oldScore - The user's previous score
+ * @param newScore - The user's new score
+ * @returns The new level name if a level up occurred, otherwise null
  */
 export function checkLevelUp(oldScore: number, newScore: number): Level | null {
   const oldLevel = getLevelDetails(oldScore).level;

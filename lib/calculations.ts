@@ -1,3 +1,8 @@
+/**
+ * @file calculations.ts
+ * @description Helper functions for calculating carbon emissions across various categories.
+ */
+
 import {
   TRANSPORT_FACTORS,
   FOOD_FACTORS,
@@ -13,6 +18,10 @@ import { getCityDistance } from './cityDistances';
 
 /**
  * Clamps input value to a specified minimum and maximum range.
+ * @param value - The numeric value to validate and clamp
+ * @param min - The minimum allowable value
+ * @param max - The maximum allowable value
+ * @returns The clamped numeric value
  */
 export function validateInput(value: number, min: number, max: number): number {
   if (isNaN(value)) return min;
@@ -21,6 +30,8 @@ export function validateInput(value: number, min: number, max: number): number {
 
 /**
  * Calculates the baseline carbon footprint in kg CO2/year from onboarding data.
+ * @param profile - The user's onboarding profile answers
+ * @returns The total calculated annual baseline carbon footprint in kg CO2
  */
 export function calculateAnnualBaseline(profile: {
   transport: string;
@@ -130,8 +141,12 @@ export function calculateAnnualBaseline(profile: {
 
 /**
  * Calculates emissions for a single Transport log entry.
+ * @param vehicleType - The type of transport vehicle used
+ * @param distance - The distance traveled in kilometers
+ * @returns The calculated CO2 emissions in kg CO2
  */
 export function calculateTransportEmission(vehicleType: string, distance: number): number {
+  // Clamp to realistic daily distance limit to prevent data entry errors from skewing stats
   const clampedDistance = validateInput(distance, 0, 2000);
   const factor = TRANSPORT_FACTORS[vehicleType] ?? TRANSPORT_FACTORS['Petrol car'];
   return Number((clampedDistance * factor).toFixed(2));
@@ -139,8 +154,12 @@ export function calculateTransportEmission(vehicleType: string, distance: number
 
 /**
  * Calculates emissions for a single Food log entry.
+ * @param mealType - The type of food or meal consumed
+ * @param servings - The number of servings consumed
+ * @returns The calculated CO2 emissions in kg CO2
  */
 export function calculateFoodEmission(mealType: string, servings: number): number {
+  // Clamp servings to realistic meal portion sizes to avoid accidental high values
   const clampedServings = validateInput(servings, 1, 4);
   const factor = FOOD_FACTORS[mealType] ?? FOOD_FACTORS['Rice meal'];
   return Number((clampedServings * factor).toFixed(2));
@@ -148,6 +167,12 @@ export function calculateFoodEmission(mealType: string, servings: number): numbe
 
 /**
  * Calculates emissions for a single Energy log entry.
+ * @param electricityKwh - The electricity consumed in kWh
+ * @param state - The Indian state for grid factor lookup
+ * @param lpgCylinders - The number of LPG cylinders consumed
+ * @param generatorHours - The generator operating hours
+ * @param generatorFuel - The type of fuel used in the generator
+ * @returns The calculated CO2 emissions in kg CO2
  */
 export function calculateEnergyEmission(
   electricityKwh: number,
@@ -156,6 +181,7 @@ export function calculateEnergyEmission(
   generatorHours: number,
   generatorFuel: string
 ): number {
+  // Clamp values to realistic household monthly limits to prevent extreme data anomalies
   const clampedElectricity = validateInput(electricityKwh, 0, 10000);
   const clampedCylinders = validateInput(lpgCylinders, 0, 100);
   const clampedGenHours = validateInput(generatorHours, 0, 240);
@@ -175,12 +201,17 @@ export function calculateEnergyEmission(
 
 /**
  * Calculates emissions for a single Shopping log entry.
+ * @param shoppingCategory - The category of purchase
+ * @param spend - The amount spent in Indian Rupees (INR)
+ * @param isSecondHand - Whether the purchased item is second-hand
+ * @returns The calculated CO2 emissions in kg CO2
  */
 export function calculateShoppingEmission(
   shoppingCategory: string,
   spend: number,
   isSecondHand: boolean
 ): number {
+  // Clamp transaction spend to handle normal shopping ranges and limit outlier impact
   const clampedSpend = validateInput(spend, 0, 500000);
   const baseFactor = SHOPPING_FACTORS[shoppingCategory] ?? SHOPPING_FACTORS['Other'];
   let factor = baseFactor;
@@ -192,6 +223,11 @@ export function calculateShoppingEmission(
 
 /**
  * Calculates emissions for a single Travel (flight) log entry.
+ * @param fromCity - The origin Indian city
+ * @param toCity - The destination Indian city
+ * @param travelClass - The cabin class of the flight
+ * @param isReturn - Whether it is a round-trip flight
+ * @returns The calculated CO2 emissions in kg CO2
  */
 export function calculateTravelEmission(
   fromCity: string,
@@ -199,6 +235,7 @@ export function calculateTravelEmission(
   travelClass: string,
   isReturn: boolean
 ): number {
+  // Retrieve the distance between the two cities from the local database
   const distance = getCityDistance(fromCity, toCity);
   const totalDistance = isReturn ? distance * 2 : distance;
   const classMultiplier = FLIGHT_CLASS_MULTIPLIERS[travelClass] ?? 1.0;
