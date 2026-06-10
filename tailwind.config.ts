@@ -10,14 +10,14 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        void: 'var(--void)',
-        space: 'var(--space)',
-        green: 'var(--green)',
-        'green-dim': 'var(--green-dim)',
-        amber: 'var(--amber)',
-        coral: 'var(--coral)',
-        frost: 'var(--frost)',
-        muted: 'var(--muted)',
+        void: 'rgb(var(--void-rgb) / <alpha-value>)',
+        space: 'rgb(var(--space-rgb) / <alpha-value>)',
+        green: 'rgb(var(--green-rgb) / <alpha-value>)',
+        'green-dim': 'rgb(var(--green-dim-rgb) / <alpha-value>)',
+        amber: 'rgb(var(--amber-rgb) / <alpha-value>)',
+        coral: 'rgb(var(--coral-rgb) / <alpha-value>)',
+        frost: 'rgb(var(--frost-rgb) / <alpha-value>)',
+        muted: 'rgb(var(--muted-rgb) / <alpha-value>)',
         border: 'var(--border)',
       },
       fontFamily: {

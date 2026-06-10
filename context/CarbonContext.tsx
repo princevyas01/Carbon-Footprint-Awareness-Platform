@@ -219,6 +219,10 @@ function carbonReducer(state: CarbonState, action: CarbonAction): CarbonState {
       };
 
     case 'SET_THEME':
+      applyTheme(action.payload);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('carbonlens_theme', action.payload);
+      }
       return {
         ...state,
         theme: action.payload,

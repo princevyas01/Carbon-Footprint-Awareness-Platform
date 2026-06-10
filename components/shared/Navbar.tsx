@@ -125,14 +125,10 @@ export default function Navbar() {
 
       {/* Mobile Bottom Navigation Tab Bar */}
       <nav 
-        className="md:hidden fixed bottom-0 left-0 right-0 z-40 flex justify-around items-center px-2"
+        className="md:hidden fixed bottom-0 left-0 right-0 z-40 flex justify-around items-center px-2 bg-space/80 backdrop-blur-md border-t border-border"
         style={{
           height: '64px',
           paddingBottom: 'calc(env(safe-area-inset-bottom) / 2)',
-          background: 'rgba(13, 17, 23, 0.8)',
-          backdropFilter: 'blur(20px)',
-          WebkitBackdropFilter: 'blur(20px)',
-          borderTop: '1px solid rgba(255, 255, 255, 0.08)',
         }}
         aria-label="Mobile bottom tab navigation"
       >
