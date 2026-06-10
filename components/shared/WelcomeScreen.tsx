@@ -86,7 +86,7 @@ export default function WelcomeScreen({
             <input
               id="name-input"
               type="text"
-              placeholder="e.g. Aarav"
+              placeholder="e.g. Prince"
               value={name}
               onChange={(e) => setName(e.target.value)}
               className="w-full bg-[#0D1117]/80 border border-white/10 rounded-xl px-4 py-3 text-sm font-body text-frost placeholder-white/20 focus:outline-none focus:border-[#00FF87] focus:ring-1 focus:ring-[#00FF87] transition-all"
@@ -101,7 +101,7 @@ export default function WelcomeScreen({
             <input
               id="city-input"
               type="text"
-              placeholder="e.g. Mumbai"
+              placeholder="e.g. Pune"
               value={city}
               onChange={(e) => setCity(e.target.value)}
               className="w-full bg-[#0D1117]/80 border border-white/10 rounded-xl px-4 py-3 text-sm font-body text-frost placeholder-white/20 focus:outline-none focus:border-[#00FF87] focus:ring-1 focus:ring-[#00FF87] transition-all"
