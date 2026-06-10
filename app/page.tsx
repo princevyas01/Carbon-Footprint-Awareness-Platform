@@ -12,9 +12,11 @@ import QuickLogFAB from '../components/dashboard/QuickLogFAB';
 import ShareCard from '../components/shared/ShareCard';
 import { useCarbonData } from '../hooks/useCarbonData';
 import { useEcoScore } from '../hooks/useEcoScore';
+import { useCarbon } from '../context/CarbonContext';
 import { Share2 } from 'lucide-react';
 
 export default function DashboardPage() {
+  const { state } = useCarbon();
   const {
     monthlyTotal,
     lastMonthTotal,
@@ -73,6 +75,20 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-8 pb-12">
+      {/* Greeting Header */}
+      {state.activeUser && (
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h1 className="font-display text-3xl font-extrabold text-white">
+              Namaste, {state.activeUser.name}! 👋
+            </h1>
+            <p className="font-body text-sm text-[#8899AA] mt-1">
+              Ready to reduce your carbon footprint today?
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Hero Section */}
       <section 
         className="relative flex flex-col items-center text-center py-10 md:py-16 overflow-visible rounded-3xl border border-border bg-space/20 backdrop-blur-md"

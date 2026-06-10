@@ -9,14 +9,16 @@ import ParticleCanvas from './ParticleCanvas';
 import Toast from '../ui/Toast';
 import LevelUpModal from '../gamification/LevelUpModal';
 import CompletionCelebration from '../challenges/CompletionCelebration';
+import WelcomeScreen from './WelcomeScreen';
+import UserSelectorScreen from './UserSelectorScreen';
 import { useCarbon } from '../../context/CarbonContext';
-import { storage } from '../../lib/storage';
 
 export default function AppClientLayout({ children }: { children: React.ReactNode }) {
-  const { state, removeToast } = useCarbon();
+  const { state, removeToast, createNewUser, selectUser } = useCarbon();
   const [showSplash, setShowSplash] = useState(true);
   const [isMounted, setIsMounted] = useState(false);
   const [showBanner, setShowBanner] = useState(false);
+  const [wantsAddNewUser, setWantsAddNewUser] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
 
@@ -43,15 +45,15 @@ export default function AppClientLayout({ children }: { children: React.ReactNod
 
   // Perform route protection / onboarding redirect
   useEffect(() => {
-    if (isMounted && !showSplash) {
-      const onboarded = storage.getOnboarded();
+    if (isMounted && !showSplash && state.activeUser) {
+      const onboarded = state.profile?.isOnboarded || false;
       if (!onboarded && pathname !== '/onboarding') {
         router.push('/onboarding');
       } else if (onboarded && pathname === '/onboarding') {
         router.push('/');
       }
     }
-  }, [isMounted, showSplash, pathname, router]);
+  }, [isMounted, showSplash, pathname, router, state.activeUser, state.profile]);
 
   if (!isMounted) {
     // Return empty page shell during SSR/hydration to avoid hydration mismatch
@@ -64,6 +66,36 @@ export default function AppClientLayout({ children }: { children: React.ReactNod
 
   if (showSplash) {
     return <SplashScreen onComplete={handleSplashComplete} />;
+  }
+
+  // Multi-user welcome/selector screening
+  if (!state.activeUser) {
+    if (state.allUsers.length === 0 || wantsAddNewUser) {
+      return (
+        <>
+          <ParticleCanvas />
+          <WelcomeScreen 
+            allUsers={state.allUsers} 
+            onCreateUser={(name, city, avatar) => {
+              createNewUser(name, city, avatar);
+              setWantsAddNewUser(false);
+            }} 
+            onShowSelector={() => setWantsAddNewUser(false)}
+          />
+        </>
+      );
+    } else {
+      return (
+        <>
+          <ParticleCanvas />
+          <UserSelectorScreen 
+            users={state.allUsers}
+            onSelectUser={(id) => selectUser(id)}
+            onAddNewUser={() => setWantsAddNewUser(true)}
+          />
+        </>
+      );
+    }
   }
 
   // Determine if it's the onboarding page to hide navigation sidebar

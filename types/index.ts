@@ -104,3 +104,22 @@ export interface ChartDataPoint {
 }
 
 export type Theme = 'dark' | 'light';
+
+export interface User {
+  id: string;
+  name: string;
+  city: string;
+  avatar: string;
+  createdAt: string;
+  lastActive: string;
+  onboarded: boolean;
+  profile: UserProfile | null;
+  logs: LogEntry[];
+  challenges: Challenge[];
+  ecoScore: number;
+  level: string;
+  notifications: Notification[];
+  theme: Theme;
+  monthlyData?: Record<string, any>;
+}
+

@@ -3,9 +3,10 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, ClipboardList, Trophy, LineChart, Leaf, Plus } from 'lucide-react';
+import { Home, ClipboardList, Trophy, LineChart, Leaf, Plus, User as UserIcon } from 'lucide-react';
 import ThemeToggle from './ThemeToggle';
 import NotificationBell from './NotificationBell';
+import { useCarbon } from '../../context/CarbonContext';
 
 const NAV_ITEMS = [
   { href: '/', label: 'Dashboard', icon: Home },
@@ -13,10 +14,12 @@ const NAV_ITEMS = [
   { href: '/challenges', label: 'Challenges', icon: Trophy },
   { href: '/insights', label: 'Insights', icon: LineChart },
   { href: '/offset', label: 'Offset', icon: Leaf },
+  { href: '/profile', label: 'Profile', icon: UserIcon },
 ];
 
 export default function Navbar() {
   const pathname = usePathname();
+  const { state, switchUser } = useCarbon();
 
   return (
     <>
@@ -60,6 +63,29 @@ export default function Navbar() {
           })}
         </nav>
 
+        {/* Active User Section */}
+        {state.activeUser && (
+          <div className="border-t border-border pt-4 mb-4 flex flex-col gap-2">
+            <div className="flex items-center gap-3">
+              <span className="text-3xl" role="img" aria-label="User Avatar">{state.activeUser.avatar}</span>
+              <div className="flex flex-col min-w-0">
+                <span className="font-display font-bold text-sm text-frost truncate">
+                  {state.activeUser.name}
+                </span>
+                <span className="text-[10px] font-display font-semibold text-[#00FF87] bg-[#00FF87]/5 border border-[#00FF87]/20 px-1.5 py-0.5 rounded-full w-fit mt-0.5">
+                  {state.activeUser.level}
+                </span>
+              </div>
+            </div>
+            <button
+              onClick={switchUser}
+              className="w-full text-left text-xs font-body font-semibold text-[#8899AA] hover:text-[#00FF87] transition-colors mt-1"
+            >
+              Switch User ⇄
+            </button>
+          </div>
+        )}
+
         {/* Sidebar Footer Controls */}
         <div className="border-t border-border pt-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -82,6 +108,16 @@ export default function Navbar() {
           <span>CarbonLens</span>
         </Link>
         <div className="flex items-center gap-2">
+          {state.activeUser && (
+            <Link
+              href="/profile"
+              className="text-xl mr-2 hover:scale-105 active:scale-95 transition-transform"
+              title="Go to Profile Settings"
+              aria-label="Profile Settings"
+            >
+              {state.activeUser.avatar}
+            </Link>
+          )}
           <ThemeToggle />
           <NotificationBell />
         </div>

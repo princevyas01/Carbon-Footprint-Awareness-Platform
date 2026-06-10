@@ -1,195 +1,225 @@
-import { UserProfile, LogEntry, Challenge, Notification, Theme, InsightResponse } from '../types';
+import { User, UserProfile, LogEntry, Challenge, Notification, Theme, InsightResponse } from '../types';
 
 const KEYS = {
-  ONBOARDED: 'carbonlens_onboarded',
-  PROFILE: 'carbonlens_profile',
-  LOGS: 'carbonlens_logs',
-  CHALLENGES: 'carbonlens_challenges',
-  SCORE: 'carbonlens_score',
-  NOTIFICATIONS: 'carbonlens_notifications',
-  THEME: 'carbonlens_theme',
-  LAST_INSIGHT: 'carbonlens_last_insight',
+  USERS: 'carbonlens_users',
+  ACTIVE_USER_ID: 'carbonlens_active_user',
 };
 
 export const storage = {
-  // Onboarding Status
-  getOnboarded(): boolean {
+  // Multi-user Helpers
+  getUsers(): User[] {
     try {
-      if (typeof window === 'undefined') return false;
-      const val = localStorage.getItem(KEYS.ONBOARDED);
-      return val === 'true';
+      if (typeof window === 'undefined') return [];
+      const data = localStorage.getItem(KEYS.USERS);
+      return data ? JSON.parse(data) : [];
     } catch (e) {
-      console.error('Error reading onboarding status from storage:', e);
-      return false;
+      console.error('Error reading users from storage:', e);
+      return [];
     }
+  },
+
+  getActiveUser(): User | null {
+    try {
+      if (typeof window === 'undefined') return null;
+      const activeId = localStorage.getItem(KEYS.ACTIVE_USER_ID);
+      if (!activeId) {
+        // Fallback: if users exist but no active ID is set, select first
+        const users = this.getUsers();
+        if (users.length > 0) {
+          localStorage.setItem(KEYS.ACTIVE_USER_ID, users[0].id);
+          return users[0];
+        }
+        return null;
+      }
+      const users = this.getUsers();
+      return users.find((u) => u.id === activeId) || null;
+    } catch (e) {
+      console.error('Error reading active user from storage:', e);
+      return null;
+    }
+  },
+
+  saveUser(user: User): void {
+    try {
+      if (typeof window === 'undefined') return;
+      const users = this.getUsers();
+      const idx = users.findIndex((u) => u.id === user.id);
+      if (idx !== -1) {
+        users[idx] = user;
+      } else {
+        users.push(user);
+      }
+      localStorage.setItem(KEYS.USERS, JSON.stringify(users));
+    } catch (e) {
+      console.error('Error saving user to storage:', e);
+    }
+  },
+
+  setActiveUser(id: string | null): void {
+    try {
+      if (typeof window === 'undefined') return;
+      if (id === null) {
+        localStorage.removeItem(KEYS.ACTIVE_USER_ID);
+      } else {
+        localStorage.setItem(KEYS.ACTIVE_USER_ID, id);
+      }
+    } catch (e) {
+      console.error('Error setting active user ID in storage:', e);
+    }
+  },
+
+  createUser(name: string, city: string, avatar: string): User {
+    const today = new Date().toISOString().split('T')[0];
+    const newUser: User = {
+      id: 'user_' + Date.now().toString() + Math.random().toString(36).substring(2, 5),
+      name,
+      city,
+      avatar: avatar || '🌱',
+      createdAt: today,
+      lastActive: today,
+      onboarded: false,
+      profile: null,
+      logs: [],
+      challenges: [],
+      ecoScore: 0,
+      level: 'Carbon Rookie',
+      notifications: [],
+      theme: 'dark',
+      monthlyData: {},
+    };
+    this.saveUser(newUser);
+    return newUser;
+  },
+
+  deleteUser(id: string): void {
+    try {
+      if (typeof window === 'undefined') return;
+      let users = this.getUsers();
+      users = users.filter((u) => u.id !== id);
+      localStorage.setItem(KEYS.USERS, JSON.stringify(users));
+
+      // If deleted active user, clean active user ID
+      const activeId = localStorage.getItem(KEYS.ACTIVE_USER_ID);
+      if (activeId === id) {
+        localStorage.removeItem(KEYS.ACTIVE_USER_ID);
+        if (users.length > 0) {
+          localStorage.setItem(KEYS.ACTIVE_USER_ID, users[0].id);
+        }
+      }
+    } catch (e) {
+      console.error('Error deleting user from storage:', e);
+    }
+  },
+
+  // Helper to ensure an active user exists (useful for tests or fallback)
+  _ensureActiveUser(): User {
+    let user = this.getActiveUser();
+    if (!user) {
+      user = this.createUser('Default User', '', '🌱');
+      this.setActiveUser(user.id);
+    }
+    return user;
+  },
+
+  // Backward-compatible individual getters/setters mapped to the active user
+  getOnboarded(): boolean {
+    const user = this.getActiveUser();
+    return user ? user.onboarded : false;
   },
   setOnboarded(value: boolean): void {
-    try {
-      if (typeof window === 'undefined') return;
-      localStorage.setItem(KEYS.ONBOARDED, String(value));
-    } catch (e) {
-      console.error('Error writing onboarding status to storage:', e);
-    }
+    const user = this._ensureActiveUser();
+    user.onboarded = value;
+    this.saveUser(user);
   },
 
-  // User Profile
   getProfile(): UserProfile | null {
-    try {
-      if (typeof window === 'undefined') return null;
-      const data = localStorage.getItem(KEYS.PROFILE);
-      return data ? JSON.parse(data) : null;
-    } catch (e) {
-      console.error('Error reading profile from storage:', e);
-      return null;
-    }
+    const user = this.getActiveUser();
+    return user ? user.profile : null;
   },
   setProfile(profile: UserProfile): void {
-    try {
-      if (typeof window === 'undefined') return;
-      localStorage.setItem(KEYS.PROFILE, JSON.stringify(profile));
-    } catch (e) {
-      console.error('Error writing profile to storage:', e);
-    }
+    const user = this._ensureActiveUser();
+    user.profile = profile;
+    this.saveUser(user);
   },
 
-  // Activity Logs
   getLogs(): LogEntry[] {
-    try {
-      if (typeof window === 'undefined') return [];
-      const data = localStorage.getItem(KEYS.LOGS);
-      return data ? JSON.parse(data) : [];
-    } catch (e) {
-      console.error('Error reading logs from storage:', e);
-      return [];
-    }
+    const user = this.getActiveUser();
+    return user ? user.logs : [];
   },
   setLogs(logs: LogEntry[]): void {
-    try {
-      if (typeof window === 'undefined') return;
-      localStorage.setItem(KEYS.LOGS, JSON.stringify(logs));
-    } catch (e) {
-      console.error('Error writing logs to storage:', e);
-    }
+    const user = this._ensureActiveUser();
+    user.logs = logs;
+    this.saveUser(user);
   },
 
-  // Challenges
   getChallenges(): Challenge[] {
-    try {
-      if (typeof window === 'undefined') return [];
-      const data = localStorage.getItem(KEYS.CHALLENGES);
-      return data ? JSON.parse(data) : [];
-    } catch (e) {
-      console.error('Error reading challenges from storage:', e);
-      return [];
-    }
+    const user = this.getActiveUser();
+    return user ? user.challenges : [];
   },
   setChallenges(challenges: Challenge[]): void {
-    try {
-      if (typeof window === 'undefined') return;
-      localStorage.setItem(KEYS.CHALLENGES, JSON.stringify(challenges));
-    } catch (e) {
-      console.error('Error writing challenges to storage:', e);
-    }
+    const user = this._ensureActiveUser();
+    user.challenges = challenges;
+    this.saveUser(user);
   },
 
-  // Eco Score
   getScore(): number {
-    try {
-      if (typeof window === 'undefined') return 0;
-      const val = localStorage.getItem(KEYS.SCORE);
-      return val ? parseInt(val, 10) : 0;
-    } catch (e) {
-      console.error('Error reading score from storage:', e);
-      return 0;
-    }
+    const user = this.getActiveUser();
+    return user ? user.ecoScore : 0;
   },
   setScore(score: number): void {
-    try {
-      if (typeof window === 'undefined') return;
-      localStorage.setItem(KEYS.SCORE, String(score));
-    } catch (e) {
-      console.error('Error writing score to storage:', e);
-    }
+    const user = this._ensureActiveUser();
+    user.ecoScore = score;
+    this.saveUser(user);
   },
 
-  // Notifications
   getNotifications(): Notification[] {
-    try {
-      if (typeof window === 'undefined') return [];
-      const data = localStorage.getItem(KEYS.NOTIFICATIONS);
-      return data ? JSON.parse(data) : [];
-    } catch (e) {
-      console.error('Error reading notifications from storage:', e);
-      return [];
-    }
+    const user = this.getActiveUser();
+    return user ? user.notifications : [];
   },
   setNotifications(notifications: Notification[]): void {
-    try {
-      if (typeof window === 'undefined') return;
-      localStorage.setItem(KEYS.NOTIFICATIONS, JSON.stringify(notifications));
-    } catch (e) {
-      console.error('Error writing notifications to storage:', e);
-    }
+    const user = this._ensureActiveUser();
+    user.notifications = notifications;
+    this.saveUser(user);
   },
 
-  // Theme
   getTheme(): Theme | null {
-    try {
-      if (typeof window === 'undefined') return null;
-      return localStorage.getItem(KEYS.THEME) as Theme | null;
-    } catch (e) {
-      console.error('Error reading theme from storage:', e);
-      return null;
-    }
+    const user = this.getActiveUser();
+    return user ? user.theme : 'dark';
   },
   setTheme(theme: Theme): void {
-    try {
-      if (typeof window === 'undefined') return;
-      localStorage.setItem(KEYS.THEME, theme);
-    } catch (e) {
-      console.error('Error writing theme to storage:', e);
-    }
+    const user = this._ensureActiveUser();
+    user.theme = theme;
+    this.saveUser(user);
   },
 
-  // Last AI Insight
   getLastInsight(): InsightResponse | null {
     try {
       if (typeof window === 'undefined') return null;
-      const data = localStorage.getItem(KEYS.LAST_INSIGHT);
+      const data = localStorage.getItem('carbonlens_last_insight');
       return data ? JSON.parse(data) : null;
-    } catch (e) {
-      console.error('Error reading last insight from storage:', e);
+    } catch {
       return null;
     }
   },
   setLastInsight(insight: InsightResponse): void {
     try {
       if (typeof window === 'undefined') return;
-      localStorage.setItem(KEYS.LAST_INSIGHT, JSON.stringify(insight));
-    } catch (e) {
-      console.error('Error writing last insight to storage:', e);
-    }
+      localStorage.setItem('carbonlens_last_insight', JSON.stringify(insight));
+    } catch {}
   },
 
-  // Export data
   exportAllData(): string {
-    try {
-      if (typeof window === 'undefined') return '{}';
-      const allData: Record<string, unknown> = {};
-      Object.values(KEYS).forEach((key) => {
-        const value = localStorage.getItem(key);
-        if (value) {
-          try {
-            allData[key] = JSON.parse(value);
-          } catch {
-            allData[key] = value;
-          }
-        }
-      });
-      return JSON.stringify(allData, null, 2);
-    } catch (e) {
-      console.error('Error exporting data:', e);
-      return '{}';
-    }
+    const user = this.getActiveUser();
+    if (!user) return '{}';
+    const mockExport = {
+      'carbonlens_score': user.ecoScore,
+      'carbonlens_onboarded': user.onboarded,
+      'carbonlens_profile': user.profile,
+      'carbonlens_logs': user.logs,
+      'carbonlens_challenges': user.challenges,
+      'carbonlens_notifications': user.notifications,
+      'carbonlens_theme': user.theme,
+    };
+    return JSON.stringify(mockExport, null, 2);
   }
 };

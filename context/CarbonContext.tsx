@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useReducer, useEffect, ReactNode } from 'react';
 import {
+  User,
   UserProfile,
   LogEntry,
   Challenge,
@@ -37,6 +38,8 @@ export interface ToastMessage {
 }
 
 interface CarbonState {
+  activeUser: User | null;
+  allUsers: User[];
   profile: UserProfile | null;
   logs: LogEntry[];
   challenges: Challenge[];
@@ -76,6 +79,8 @@ type CarbonAction =
   | { type: 'REMOVE_TOAST'; payload: string };
 
 const initialState: CarbonState = {
+  activeUser: null,
+  allUsers: [],
   profile: null,
   logs: [],
   challenges: [],
@@ -289,6 +294,13 @@ interface CarbonContextProps {
   refreshAIInsight: (force?: boolean) => Promise<void>;
   dismissLevelUp: () => void;
   dismissCelebration: () => void;
+  // Multi-user Handlers
+  selectUser: (id: string) => void;
+  createNewUser: (name: string, city: string, avatar: string) => void;
+  deleteUserAccount: (id: string) => void;
+  resetActiveUserData: () => void;
+  updateActiveUserMetadata: (name: string, city: string, avatar: string) => void;
+  switchUser: () => void;
 }
 
 const CarbonContext = createContext<CarbonContextProps | undefined>(undefined);
@@ -311,189 +323,113 @@ export const CarbonProvider = ({ children }: { children: ReactNode }) => {
 
   // 1. Load initial state once on mount from storage
   useEffect(() => {
-    let onboarded = storage.getOnboarded();
-    let profile = storage.getProfile();
-    let logs = storage.getLogs();
-    let challenges = storage.getChallenges();
-    let score = storage.getScore();
-    const notifications = storage.getNotifications();
-    const theme = storage.getTheme() || getSystemThemePreference();
+    const allUsers = storage.getUsers();
+    const activeUser = storage.getActiveUser();
+    const theme = (activeUser?.theme || storage.getTheme() || getSystemThemePreference()) as Theme;
     const insight = storage.getLastInsight();
 
-    // Seeding demo data on first load if no logs exist
-    if (logs.length === 0) {
-      profile = {
-        transport: 'petrolCar',
-        diet: 'mixed',
-        energy: 'gridOnly',
-        flights: '1-2',
-        shopping: 'moderate',
-        baselineCo2: 5200,
-        isOnboarded: true,
-      };
-      storage.setProfile(profile);
-      storage.setOnboarded(true);
-      onboarded = true;
+    if (activeUser) {
+      // Check if we need to apply inactivity penalty (-20 points if no log in 48+ hours)
+      let finalScore = activeUser.ecoScore;
+      let newNotifications = [...activeUser.notifications];
+      
+      if (activeUser.onboarded && activeUser.logs.length > 0) {
+        const now = Date.now();
+        const latestLog = activeUser.logs.reduce((latest, current) => {
+          return new Date(current.date).getTime() > new Date(latest.date).getTime() ? current : latest;
+        });
+        const lastLogMs = new Date(latestLog.date).getTime();
+        const hoursSinceLastLog = (now - lastLogMs) / (1000 * 60 * 60);
 
-      const dayMs = 24 * 60 * 60 * 1000;
-      const getRelDate = (daysAgo: number) => new Date(Date.now() - daysAgo * dayMs).toISOString().split('T')[0];
+        const lastPenaltyApplied = typeof window !== 'undefined' ? localStorage.getItem(`carbonlens_last_penalty_time_${activeUser.id}`) : null;
+        const lastPenaltyMs = lastPenaltyApplied ? parseInt(lastPenaltyApplied, 10) : 0;
 
-      logs = [
-        // Week 1 (6 weeks ago -> 42 days ago)
-        { id: 'seed-w1-1', category: 'transport', date: getRelDate(42), description: 'Petrol car - 45km commute', co2: 9.45, details: { vehicleType: 'Petrol car', distance: 45 } },
-        { id: 'seed-w1-2', category: 'food', date: getRelDate(41), description: 'Chicken lunch', co2: 1.26, details: { mealSlot: 'Lunch', mealType: 'Chicken', servings: 1 } },
-        { id: 'seed-w1-3', category: 'food', date: getRelDate(40), description: 'Mixed dinner', co2: 1.5, details: { mealSlot: 'Dinner', mealType: 'Mixed', servings: 1 } },
-        { id: 'seed-w1-4', category: 'energy', date: getRelDate(39), description: '80 kWh electricity (Maharashtra)', co2: 57.6, details: { electricityKwh: 80, state: 'Maharashtra' } },
+        if (hoursSinceLastLog >= 48 && lastPenaltyMs < lastLogMs) {
+          finalScore = Math.max(activeUser.ecoScore - 20, 0);
+          
+          if (typeof window !== 'undefined') {
+            localStorage.setItem(`carbonlens_last_penalty_time_${activeUser.id}`, String(now));
+          }
 
-        // Week 2 (5 weeks ago -> 35 days ago)
-        { id: 'seed-w2-1', category: 'transport', date: getRelDate(35), description: 'Metro - 12km commute', co2: 0.37, details: { vehicleType: 'Metro', distance: 12 } },
-        { id: 'seed-w2-2', category: 'transport', date: getRelDate(34), description: 'Petrol car - 30km commute', co2: 6.3, details: { vehicleType: 'Petrol car', distance: 30 } },
-        { id: 'seed-w2-3', category: 'food', date: getRelDate(33), description: 'Beef curry', co2: 6.61, details: { mealType: 'Beef curry', servings: 1 } },
-        { id: 'seed-w2-4', category: 'food', date: getRelDate(32), description: 'Dal dinner', co2: 0.24, details: { mealType: 'Dal', servings: 1 } },
-        { id: 'seed-w2-5', category: 'shopping', date: getRelDate(31), description: 'Clothing purchase', co2: 24, details: { shoppingCategory: 'Clothing', spend: 2000, isSecondHand: false } },
-
-        // Week 3 (4 weeks ago -> 28 days ago)
-        { id: 'seed-w3-1', category: 'transport', date: getRelDate(28), description: 'Two-wheeler - 25km commute', co2: 2.25, details: { vehicleType: 'Two-wheeler', distance: 25 } },
-        { id: 'seed-w3-2', category: 'food', date: getRelDate(27), description: 'Vegan thali × 3', co2: 0.45, details: { mealType: 'Vegan thali', servings: 3 } },
-        { id: 'seed-w3-3', category: 'food', date: getRelDate(26), description: 'Chicken × 2', co2: 2.52, details: { mealType: 'Chicken', servings: 2 } },
-        { id: 'seed-w3-4', category: 'travel', date: getRelDate(25), description: 'Flight from Mumbai to Pune (Economy)', co2: 115, details: { fromCity: 'Mumbai', toCity: 'Pune', travelClass: 'Economy', isReturn: false } },
-
-        // Week 4 (3 weeks ago -> 21 days ago)
-        { id: 'seed-w4-1', category: 'transport', date: getRelDate(21), description: 'Bus - 20km commute', co2: 1.78, details: { vehicleType: 'Bus', distance: 20 } },
-        { id: 'seed-w4-2', category: 'transport', date: getRelDate(20), description: 'Petrol car - 15km commute', co2: 3.15, details: { vehicleType: 'Petrol car', distance: 15 } },
-        { id: 'seed-w4-3', category: 'food', date: getRelDate(19), description: 'Paneer × 2', co2: 1.88, details: { mealType: 'Paneer/Dairy', servings: 2 } },
-        { id: 'seed-w4-4', category: 'food', date: getRelDate(18), description: 'Rice meal × 3', co2: 1.2, details: { mealType: 'Rice meal', servings: 3 } },
-        { id: 'seed-w4-5', category: 'energy', date: getRelDate(17), description: 'LPG - 1 cylinder', co2: 42.35, details: { lpgCylinders: 1 } },
-
-        // Week 5 (2 weeks ago -> 14 days ago)
-        { id: 'seed-w5-1', category: 'transport', date: getRelDate(14), description: 'Metro - 8km commute', co2: 0.25, details: { vehicleType: 'Metro', distance: 8 } },
-        { id: 'seed-w5-2', category: 'transport', date: getRelDate(13), description: 'Cycle - green transit', co2: 0, details: { vehicleType: 'Cycle', distance: 5 } },
-        { id: 'seed-w5-3', category: 'food', date: getRelDate(12), description: 'Vegan thali × 5', co2: 0.75, details: { mealType: 'Vegan thali', servings: 5 } },
-        { id: 'seed-w5-4', category: 'food', date: getRelDate(11), description: 'Eggs × 3', co2: 1.8, details: { mealType: 'Eggs', servings: 3 } },
-        { id: 'seed-w5-5', category: 'shopping', date: getRelDate(10), description: 'Electronics purchase', co2: 110, details: { shoppingCategory: 'Electronics', spend: 5000, isSecondHand: false } },
-
-        // Week 6 (this week / current month -> 2 days ago)
-        { id: 'seed-w6-1', category: 'transport', date: getRelDate(2), description: 'Petrol car - 60km commute', co2: 12.6, details: { vehicleType: 'Petrol car', distance: 60 } },
-        { id: 'seed-w6-2', category: 'food', date: getRelDate(1), description: 'Chicken × 4', co2: 5.04, details: { mealType: 'Chicken', servings: 4 } },
-        { id: 'seed-w6-3', category: 'food', date: getRelDate(0), description: 'Dal × 3', co2: 0.72, details: { mealType: 'Dal', servings: 3 } },
-        { id: 'seed-w6-4', category: 'energy', date: getRelDate(0), description: '95 kWh electricity (Maharashtra)', co2: 68.4, details: { electricityKwh: 95, state: 'Maharashtra' } },
-      ];
-      storage.setLogs(logs);
-
-      score = 240;
-      storage.setScore(score);
-
-      const activeChall: Challenge = {
-        id: 'metro-week',
-        name: 'Metro Week',
-        emoji: '🚌',
-        duration: '5 days',
-        durationDays: 5,
-        co2SavedPotential: 8.4,
-        difficulty: 'Easy',
-        description: 'Use only public transit',
-        status: 'Active',
-        startDate: getRelDate(3),
-        checkedDays: [getRelDate(3), getRelDate(2), getRelDate(1)],
-        streak: 3,
-      };
-
-      challenges = DEFAULT_CHALLENGES.map((c) => (c.id === 'metro-week' ? activeChall : c));
-      storage.setChallenges(challenges);
-    }
-
-    // Check if we need to apply inactivity penalty (-20 points if no log in 48+ hours)
-    let finalScore = score;
-    let newNotifications = [...notifications];
-    if (onboarded && logs.length > 0) {
-      const now = Date.now();
-      const latestLog = logs.reduce((latest, current) => {
-        return new Date(current.date).getTime() > new Date(latest.date).getTime() ? current : latest;
-      });
-      const lastLogMs = new Date(latestLog.date).getTime();
-      const hoursSinceLastLog = (now - lastLogMs) / (1000 * 60 * 60);
-
-      // We read last penalty applied timestamp to avoid double penalty for same gap
-      const lastPenaltyApplied = typeof window !== 'undefined' ? localStorage.getItem('carbonlens_last_penalty_time') : null;
-      const lastPenaltyMs = lastPenaltyApplied ? parseInt(lastPenaltyApplied, 10) : 0;
-
-      if (hoursSinceLastLog >= 48 && lastPenaltyMs < lastLogMs) {
-        finalScore = Math.max(score - 20, 0);
-        
-        // Save penalty timestamp
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('carbonlens_last_penalty_time', String(now));
+          const penaltyNotif: Notification = {
+            id: `penalty-${now}`,
+            icon: '⚠️',
+            text: 'Inactivity penalty applied: -20 points (no logs in 48h)',
+            timestamp: now,
+            read: false,
+          };
+          newNotifications = [penaltyNotif, ...newNotifications].slice(0, 50);
+          
+          dispatch({ type: 'APPLY_PENALTY', payload: { penalty: 20 } });
+          dispatch({ type: 'ADD_NOTIFICATION', payload: penaltyNotif });
+          showToast('Inactivity penalty: -20 points ⚠️', 'warning');
         }
-
-        const penaltyNotif: Notification = {
-          id: `penalty-${now}`,
-          icon: '⚠️',
-          text: 'Inactivity penalty applied: -20 points (no logs in 48h)',
-          timestamp: now,
-          read: false,
-        };
-        newNotifications = [penaltyNotif, ...newNotifications].slice(0, 50);
-        
-        // Dispatch penalty immediately so state is updated
-        dispatch({ type: 'APPLY_PENALTY', payload: { penalty: 20 } });
-        dispatch({ type: 'ADD_NOTIFICATION', payload: penaltyNotif });
-        showToast('Inactivity penalty: -20 points ⚠️', 'warning');
       }
-    }
 
-    // Initialize state
-    dispatch({
-      type: 'INIT_STATE',
-      payload: {
-        profile,
-        logs,
-        challenges: challenges.length === 0 ? DEFAULT_CHALLENGES : challenges,
-        score: finalScore,
-        notifications: newNotifications,
-        theme,
-        insight,
-      },
-    });
+      dispatch({
+        type: 'INIT_STATE',
+        payload: {
+          activeUser,
+          allUsers,
+          profile: activeUser.profile,
+          logs: activeUser.logs,
+          challenges: activeUser.challenges.length === 0 ? DEFAULT_CHALLENGES : activeUser.challenges,
+          score: finalScore,
+          notifications: newNotifications,
+          theme,
+          insight,
+        },
+      });
+    } else {
+      dispatch({
+        type: 'INIT_STATE',
+        payload: {
+          activeUser: null,
+          allUsers,
+          profile: null,
+          logs: [],
+          challenges: DEFAULT_CHALLENGES,
+          score: 0,
+          notifications: [],
+          theme,
+          insight,
+        },
+      });
+    }
 
     applyTheme(theme);
   }, []);
 
-  // 2. Write states to storage when they change
+  // 2. Write active user states to storage when they change
   useEffect(() => {
-    if (state.profile) {
-      storage.setProfile(state.profile);
-      storage.setOnboarded(true);
+    if (state.activeUser) {
+      const updatedUser: User = {
+        ...state.activeUser,
+        profile: state.profile,
+        logs: state.logs,
+        challenges: state.challenges,
+        ecoScore: state.score,
+        level: getLevelDetails(state.score).level,
+        notifications: state.notifications,
+        theme: state.theme,
+        onboarded: state.profile ? state.profile.isOnboarded : false,
+        lastActive: new Date().toISOString().split('T')[0],
+      };
+      storage.saveUser(updatedUser);
     }
-  }, [state.profile]);
+  }, [state.profile, state.logs, state.challenges, state.score, state.notifications, state.theme]);
 
+  // 3. Keep allUsers and activeUser references in sync with localStorage
   useEffect(() => {
-    storage.setLogs(state.logs);
-  }, [state.logs]);
-
-  useEffect(() => {
-    if (state.challenges.length > 0) {
-      storage.setChallenges(state.challenges);
+    if (typeof window !== 'undefined') {
+      const activeUser = storage.getActiveUser();
+      const allUsers = storage.getUsers();
+      dispatch({
+        type: 'INIT_STATE',
+        payload: { activeUser, allUsers }
+      });
     }
-  }, [state.challenges]);
-
-  useEffect(() => {
-    storage.setScore(state.score);
-  }, [state.score]);
-
-  useEffect(() => {
-    storage.setNotifications(state.notifications);
-  }, [state.notifications]);
-
-  useEffect(() => {
-    storage.setTheme(state.theme);
-    applyTheme(state.theme);
-  }, [state.theme]);
-
-  useEffect(() => {
-    if (state.insight) {
-      storage.setLastInsight(state.insight);
-    }
-  }, [state.insight]);
+  }, [state.profile, state.logs, state.challenges, state.score, state.notifications, state.theme]);
 
   // Actions
   const setProfile = (profile: UserProfile) => {
@@ -507,21 +443,17 @@ export const CarbonProvider = ({ children }: { children: ReactNode }) => {
       id: Math.random().toString(36).substring(2, 9),
     };
 
-    // Calculate score points earned
-    let pointsEarned = SCORING_EVENTS.ACTIVITY_LOGGED; // +10
+    let pointsEarned = SCORING_EVENTS.ACTIVITY_LOGGED;
     const todayStr = new Date().toISOString().split('T')[0];
     const yesterdayStr = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
-    // Check yesterday log for daily streak (+20)
     const loggedYesterday = state.logs.some((l) => l.date === yesterdayStr);
     const loggedTodayAlready = state.logs.some((l) => l.date === todayStr);
     if (loggedYesterday && !loggedTodayAlready) {
-      pointsEarned += SCORING_EVENTS.STREAK_MAINTAINED; // +20
+      pointsEarned += SCORING_EVENTS.STREAK_MAINTAINED;
       showToast('Daily log streak maintained! +20 points 🔥');
     }
 
-    // Check 7-day logging streak (+100)
-    // Verify if there's a log on each of the last 7 days (including today)
     let loggedLast7Days = true;
     for (let i = 1; i < 7; i++) {
       const checkDate = new Date(Date.now() - i * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
@@ -530,12 +462,11 @@ export const CarbonProvider = ({ children }: { children: ReactNode }) => {
         break;
       }
     }
-    // Only award once per day
     const alreadyAwarded7DayToday = state.notifications.some(
       (n) => n.id === `7-day-streak-${todayStr}`
     );
     if (loggedLast7Days && !loggedTodayAlready && !alreadyAwarded7DayToday) {
-      pointsEarned += SCORING_EVENTS.STREAK_7_DAY; // +100
+      pointsEarned += SCORING_EVENTS.STREAK_7_DAY;
       const streakNotif: Notification = {
         id: `7-day-streak-${todayStr}`,
         icon: '🏆',
@@ -550,12 +481,9 @@ export const CarbonProvider = ({ children }: { children: ReactNode }) => {
     dispatch({ type: 'ADD_LOG', payload: { entry, pointsEarned } });
     showToast(`Logged activity: ${entry.description} (+${pointsEarned} XP)`);
 
-    // Check and generate smart notifications
     const updatedLogs = [entry, ...state.logs];
     const newNotifs = checkAndGenerateNotifications(updatedLogs, state.challenges, state.notifications);
-    // If new notifications were added, merge them in state
     if (newNotifs.length > state.notifications.length) {
-      // Find what's new
       const currentIds = new Set(state.notifications.map((n) => n.id));
       newNotifs.forEach((n) => {
         if (!currentIds.has(n.id)) {
@@ -596,11 +524,9 @@ export const CarbonProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const completeChallenge = (id: string) => {
-    // Award +50 score points
     dispatch({ type: 'COMPLETE_CHALLENGE', payload: { id, pointsEarned: 50 } });
     const challenge = state.challenges.find((c) => c.id === id);
     
-    // Add completion notification
     const completeNotif: Notification = {
       id: `challenge-complete-${id}-${Date.now()}`,
       icon: '🎉',
@@ -634,8 +560,7 @@ export const CarbonProvider = ({ children }: { children: ReactNode }) => {
   const refreshAIInsight = async (force = false) => {
     if (!state.profile) return;
 
-    // Client-side 5-minute debounce check
-    const lastFetch = typeof window !== 'undefined' ? localStorage.getItem('carbonlens_last_insight_fetch') : null;
+    const lastFetch = typeof window !== 'undefined' ? localStorage.getItem(`carbonlens_last_insight_fetch_${state.activeUser?.id}`) : null;
     const lastFetchMs = lastFetch ? parseInt(lastFetch, 10) : 0;
     const now = Date.now();
     const elapsedMinutes = (now - lastFetchMs) / (1000 * 60);
@@ -648,7 +573,6 @@ export const CarbonProvider = ({ children }: { children: ReactNode }) => {
     dispatch({ type: 'SET_INSIGHT_LOADING', payload: true });
 
     try {
-      // Calculate monthly totals for request
       const currentMonth = new Date().getMonth();
       const currentYear = new Date().getFullYear();
       const currentMonthLogs = state.logs.filter((log) => {
@@ -664,11 +588,9 @@ export const CarbonProvider = ({ children }: { children: ReactNode }) => {
         travel: currentMonthLogs.filter((l) => l.category === 'travel').reduce((sum, l) => sum + l.co2, 0),
       };
 
-      // Determine top category
       const categories = Object.entries(monthlyTotals) as [keyof typeof monthlyTotals, number][];
       const topCategory = categories.reduce((max, curr) => (curr[1] > max[1] ? curr : max), categories[0])[0];
 
-      // Calculate monthDelta (this month vs last month)
       const lastMonth = currentMonth === 0 ? 11 : currentMonth - 1;
       const lastMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear;
       const lastMonthLogs = state.logs.filter((log) => {
@@ -713,13 +635,12 @@ export const CarbonProvider = ({ children }: { children: ReactNode }) => {
       const insightData: InsightResponse = await response.json();
       dispatch({ type: 'SET_INSIGHT_SUCCESS', payload: insightData });
       
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('carbonlens_last_insight_fetch', String(now));
+      if (typeof window !== 'undefined' && state.activeUser) {
+        localStorage.setItem(`carbonlens_last_insight_fetch_${state.activeUser.id}`, String(now));
       }
       showToast('CarbonLens AI insights updated! 🤖');
     } catch (e: any) {
       console.error('Failed to fetch Gemini insights:', e);
-      // Fallback to cache
       const cached = storage.getLastInsight();
       if (cached) {
         dispatch({ type: 'SET_INSIGHT_SUCCESS', payload: cached });
@@ -738,6 +659,139 @@ export const CarbonProvider = ({ children }: { children: ReactNode }) => {
 
   const dismissCelebration = () => {
     dispatch({ type: 'DISMISS_CELEBRATION' });
+  };
+
+  // Multi-user Helpers
+  const selectUser = (id: string) => {
+    storage.setActiveUser(id);
+    const user = storage.getActiveUser();
+    const allUsers = storage.getUsers();
+    if (user) {
+      dispatch({
+        type: 'INIT_STATE',
+        payload: {
+          activeUser: user,
+          allUsers,
+          profile: user.profile,
+          logs: user.logs,
+          challenges: user.challenges.length === 0 ? DEFAULT_CHALLENGES : user.challenges,
+          score: user.ecoScore,
+          notifications: user.notifications,
+          theme: user.theme,
+        },
+      });
+      applyTheme(user.theme);
+      showToast(`Switched to user: ${user.name} 👋`);
+    }
+  };
+
+  const createNewUser = (name: string, city: string, avatar: string) => {
+    const newUser = storage.createUser(name, city, avatar);
+    storage.setActiveUser(newUser.id);
+    const allUsers = storage.getUsers();
+    
+    dispatch({
+      type: 'INIT_STATE',
+      payload: {
+        activeUser: newUser,
+        allUsers,
+        profile: null,
+        logs: [],
+        challenges: DEFAULT_CHALLENGES,
+        score: 0,
+        notifications: [],
+        theme: 'dark',
+      },
+    });
+    applyTheme('dark');
+    showToast(`Welcome ${name}! User profile created.`);
+  };
+
+  const deleteUserAccount = (id: string) => {
+    storage.deleteUser(id);
+    const activeUser = storage.getActiveUser();
+    const allUsers = storage.getUsers();
+    
+    dispatch({
+      type: 'INIT_STATE',
+      payload: {
+        activeUser,
+        allUsers,
+        profile: activeUser ? activeUser.profile : null,
+        logs: activeUser ? activeUser.logs : [],
+        challenges: activeUser ? activeUser.challenges : DEFAULT_CHALLENGES,
+        score: activeUser ? activeUser.ecoScore : 0,
+        notifications: activeUser ? activeUser.notifications : [],
+        theme: activeUser ? activeUser.theme : 'dark',
+      },
+    });
+    if (activeUser) {
+      applyTheme(activeUser.theme);
+    }
+    showToast('User account deleted.');
+  };
+
+  const resetActiveUserData = () => {
+    const user = storage.getActiveUser();
+    if (user) {
+      user.logs = [];
+      user.challenges = DEFAULT_CHALLENGES;
+      user.ecoScore = 0;
+      user.level = 'Carbon Rookie';
+      user.notifications = [];
+      user.profile = null;
+      user.onboarded = false;
+      storage.saveUser(user);
+      
+      dispatch({
+        type: 'INIT_STATE',
+        payload: {
+          activeUser: user,
+          profile: null,
+          logs: [],
+          challenges: DEFAULT_CHALLENGES,
+          score: 0,
+          notifications: [],
+          allUsers: storage.getUsers(),
+        },
+      });
+      showToast('All progress and logs have been reset.');
+    }
+  };
+
+  const updateActiveUserMetadata = (name: string, city: string, avatar: string) => {
+    const user = storage.getActiveUser();
+    if (user) {
+      user.name = name;
+      user.city = city;
+      user.avatar = avatar;
+      storage.saveUser(user);
+      
+      dispatch({
+        type: 'INIT_STATE',
+        payload: {
+          activeUser: user,
+          allUsers: storage.getUsers(),
+        },
+      });
+      showToast('Profile metadata updated.');
+    }
+  };
+
+  const switchUser = () => {
+    storage.setActiveUser(null);
+    dispatch({
+      type: 'INIT_STATE',
+      payload: {
+        activeUser: null,
+        profile: null,
+        logs: [],
+        challenges: DEFAULT_CHALLENGES,
+        score: 0,
+        notifications: [],
+        allUsers: storage.getUsers(),
+      },
+    });
   };
 
   return (
@@ -761,6 +815,13 @@ export const CarbonProvider = ({ children }: { children: ReactNode }) => {
         refreshAIInsight,
         dismissLevelUp,
         dismissCelebration,
+        // Multi-user
+        selectUser,
+        createNewUser,
+        deleteUserAccount,
+        resetActiveUserData,
+        updateActiveUserMetadata,
+        switchUser,
       }}
     >
       {children}
