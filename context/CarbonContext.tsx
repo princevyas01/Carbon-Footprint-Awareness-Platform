@@ -1,11 +1,3 @@
-/**
- * @file CarbonContext.tsx
- * @description React Context and Provider for managing global application state, active user sessions, logs, notifications, challenges, and AI insights.
- *
- * @module Context
- * @author CarbonLens Team
- */
-
 'use client';
 
 import React, { createContext, useContext, useReducer, useEffect, ReactNode } from 'react';
@@ -23,7 +15,6 @@ import { storage } from '../lib/storage';
 import { checkLevelUp, getLevelDetails, SCORING_EVENTS } from '../lib/scoring';
 import { checkAndGenerateNotifications } from '../lib/notifications';
 import { applyTheme, getSystemThemePreference } from '../lib/theme';
-import { STORAGE_KEYS } from '../lib/constants';
 
 export const DEFAULT_CHALLENGES: Challenge[] = [
   { id: 'metro-week', name: 'Metro Week', emoji: '🚌', duration: '5 days', durationDays: 5, co2SavedPotential: 8.4, difficulty: 'Easy', description: 'Use only public transit', status: 'Available' },
@@ -104,12 +95,6 @@ const initialState: CarbonState = {
   toasts: [],
 };
 
-/**
- * State reducer for carbon data store.
- * @param state - The current state object
- * @param action - Action to be processed
- * @returns The updated state
- */
 function carbonReducer(state: CarbonState, action: CarbonAction): CarbonState {
   switch (action.type) {
     case 'INIT_STATE':
@@ -236,11 +221,7 @@ function carbonReducer(state: CarbonState, action: CarbonAction): CarbonState {
     case 'SET_THEME':
       applyTheme(action.payload);
       if (typeof window !== 'undefined') {
-        try {
-          localStorage.setItem(STORAGE_KEYS.THEME, action.payload);
-        } catch (error) {
-          console.error('[carbonReducer.SET_THEME]: Failed to write theme:', error);
-        }
+        localStorage.setItem('carbonlens_theme', action.payload);
       }
       return {
         ...state,
@@ -317,6 +298,7 @@ interface CarbonContextProps {
   refreshAIInsight: (force?: boolean) => Promise<void>;
   dismissLevelUp: () => void;
   dismissCelebration: () => void;
+  // Multi-user Handlers
   selectUser: (id: string) => void;
   createNewUser: (name: string, city: string, avatar: string) => void;
   deleteUserAccount: (id: string) => void;
@@ -327,15 +309,10 @@ interface CarbonContextProps {
 
 const CarbonContext = createContext<CarbonContextProps | undefined>(undefined);
 
-/**
- * Context Provider component that stores and handles user profiles, logging, and themes.
- * @param props - Component children elements
- * @param props.children - Child react node elements
- * @returns React context provider wrapper element
- */
 export const CarbonProvider = ({ children }: { children: ReactNode }) => {
   const [state, dispatch] = useReducer(carbonReducer, initialState);
 
+  // Helper: Toast
   const showToast = (message: string, type: ToastMessage['type'] = 'success') => {
     const id = Math.random().toString(36).substring(2, 9);
     dispatch({ type: 'ADD_TOAST', payload: { id, type, message } });
@@ -356,6 +333,7 @@ export const CarbonProvider = ({ children }: { children: ReactNode }) => {
     const insight = storage.getLastInsight();
 
     if (activeUser) {
+      // Check if we need to apply inactivity penalty (-20 points if no log in 48+ hours)
       let finalScore = activeUser.ecoScore;
       let newNotifications = [...activeUser.notifications];
       
@@ -367,26 +345,14 @@ export const CarbonProvider = ({ children }: { children: ReactNode }) => {
         const lastLogMs = new Date(latestLog.date).getTime();
         const hoursSinceLastLog = (now - lastLogMs) / (1000 * 60 * 60);
 
-        let lastPenaltyApplied: string | null = null;
-        if (typeof window !== 'undefined') {
-          try {
-            lastPenaltyApplied = localStorage.getItem(`appname_last_penalty_time_${activeUser.id}`);
-          } catch (error) {
-            console.error('[CarbonProvider.init]: Failed to get last penalty time:', error);
-          }
-        }
+        const lastPenaltyApplied = typeof window !== 'undefined' ? localStorage.getItem(`carbonlens_last_penalty_time_${activeUser.id}`) : null;
         const lastPenaltyMs = lastPenaltyApplied ? parseInt(lastPenaltyApplied, 10) : 0;
 
-        // Apply inactivity penalty (-20 points if no log in 48+ hours)
         if (hoursSinceLastLog >= 48 && lastPenaltyMs < lastLogMs) {
           finalScore = Math.max(activeUser.ecoScore - 20, 0);
           
           if (typeof window !== 'undefined') {
-            try {
-              localStorage.setItem(`appname_last_penalty_time_${activeUser.id}`, String(now));
-            } catch (error) {
-              console.error('[CarbonProvider.init]: Failed to save last penalty time:', error);
-            }
+            localStorage.setItem(`carbonlens_last_penalty_time_${activeUser.id}`, String(now));
           }
 
           const penaltyNotif: Notification = {
@@ -469,6 +435,7 @@ export const CarbonProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [state.profile, state.logs, state.challenges, state.score, state.notifications, state.theme]);
 
+  // Actions
   const setProfile = (profile: UserProfile) => {
     dispatch({ type: 'SET_PROFILE', payload: profile });
     showToast('Onboarding completed! Welcome to CarbonLens 🌍');
@@ -597,14 +564,7 @@ export const CarbonProvider = ({ children }: { children: ReactNode }) => {
   const refreshAIInsight = async (force = false) => {
     if (!state.profile) return;
 
-    let lastFetch: string | null = null;
-    if (typeof window !== 'undefined') {
-      try {
-        lastFetch = localStorage.getItem(`appname_last_insight_fetch_${state.activeUser?.id}`);
-      } catch (error) {
-        console.error('[CarbonProvider.refreshAIInsight]: Failed to read last insight fetch time:', error);
-      }
-    }
+    const lastFetch = typeof window !== 'undefined' ? localStorage.getItem(`carbonlens_last_insight_fetch_${state.activeUser?.id}`) : null;
     const lastFetchMs = lastFetch ? parseInt(lastFetch, 10) : 0;
     const now = Date.now();
     const elapsedMinutes = (now - lastFetchMs) / (1000 * 60);
@@ -680,22 +640,18 @@ export const CarbonProvider = ({ children }: { children: ReactNode }) => {
       dispatch({ type: 'SET_INSIGHT_SUCCESS', payload: insightData });
       
       if (typeof window !== 'undefined' && state.activeUser) {
-        try {
-          localStorage.setItem(`appname_last_insight_fetch_${state.activeUser.id}`, String(now));
-        } catch (error) {
-          console.error('[CarbonProvider.refreshAIInsight]: Failed to write last insight fetch time:', error);
-        }
+        localStorage.setItem(`carbonlens_last_insight_fetch_${state.activeUser.id}`, String(now));
       }
       showToast('CarbonLens AI insights updated! 🤖');
-    } catch (error) {
-      console.error('[CarbonProvider.refreshAIInsight]: Failed to fetch Gemini insights:', error);
+    } catch (e: any) {
+      console.error('Failed to fetch Gemini insights:', e);
       const cached = storage.getLastInsight();
       if (cached) {
         dispatch({ type: 'SET_INSIGHT_SUCCESS', payload: cached });
         dispatch({ type: 'SET_INSIGHT_ERROR', payload: 'Fallback to cached insights due to network error.' });
         showToast('Offline: loaded cached AI insights', 'warning');
       } else {
-        dispatch({ type: 'SET_INSIGHT_ERROR', payload: error instanceof Error ? error.message : 'Unknown network error' });
+        dispatch({ type: 'SET_INSIGHT_ERROR', payload: e.message || 'Unknown network error' });
         showToast('Failed to update AI insights. Please check connection.', 'error');
       }
     }
@@ -709,6 +665,7 @@ export const CarbonProvider = ({ children }: { children: ReactNode }) => {
     dispatch({ type: 'DISMISS_CELEBRATION' });
   };
 
+  // Multi-user Helpers
   const selectUser = (id: string) => {
     storage.setActiveUser(id);
     const user = storage.getActiveUser();
@@ -862,6 +819,7 @@ export const CarbonProvider = ({ children }: { children: ReactNode }) => {
         refreshAIInsight,
         dismissLevelUp,
         dismissCelebration,
+        // Multi-user
         selectUser,
         createNewUser,
         deleteUserAccount,
@@ -875,11 +833,6 @@ export const CarbonProvider = ({ children }: { children: ReactNode }) => {
   );
 };
 
-/**
- * Custom hook to consume the CarbonContext state and actions.
- * @returns Object containing carbon tracking state and action dispatch functions.
- * @throws {Error} If called outside of a CarbonProvider hierarchy
- */
 export const useCarbon = () => {
   const context = useContext(CarbonContext);
   if (!context) {

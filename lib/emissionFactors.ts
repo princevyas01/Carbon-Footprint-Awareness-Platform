@@ -1,9 +1,6 @@
 /**
- * @file emissionFactors.ts
- * @description Reference emission factors (in kg CO2 equivalent) for transport, food, energy grid, shopping, and flight classes.
- *
- * @module Calculations
- * @author CarbonLens Team
+ * CarbonLens Emission Factors
+ * Values are in kg CO2 equivalent.
  */
 
 // Transport emission factors per km (Source: EPA / India specific transport studies / IEA Transport Data)

@@ -1,11 +1,3 @@
-/**
- * @file index.ts
- * @description Centralized TypeScript type definitions and interfaces for the CarbonLens application.
- *
- * @module Types
- * @author CarbonLens Team
- */
-
 export type Category = 'transport' | 'food' | 'energy' | 'shopping' | 'travel';
 
 export interface UserProfile {
@@ -128,5 +120,6 @@ export interface User {
   level: string;
   notifications: Notification[];
   theme: Theme;
-  monthlyData?: Record<string, unknown>;
+  monthlyData?: Record<string, any>;
 }
+

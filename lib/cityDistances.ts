@@ -1,11 +1,3 @@
-/**
- * @file cityDistances.ts
- * @description Mock database and lookup utility for flight travel distances (in km) between major Indian cities.
- *
- * @module Calculations
- * @author CarbonLens Team
- */
-
 // List of 30 major Indian cities
 export const INDIAN_CITIES = [
   'Ahmedabad',
@@ -77,19 +69,13 @@ const CITY_PAIRS: Record<string, number> = {
 };
 
 /**
- * Returns the flight distance in kilometers between two Indian cities.
- * @param city1 - The departure city
- * @param city2 - The arrival city
- * @returns Distance in kilometers (returns 0 if cities match/invalid, or 1000 as default fallback)
- * @example
- * const dist = getCityDistance('Delhi', 'Mumbai');
- * // dist: 1148
+ * Returns distance in km between two Indian cities.
+ * If not in table, returns a reasonable default based on coordinates or avg. distance (e.g., 1000km).
  */
 export function getCityDistance(city1: string, city2: string): number {
   if (!city1 || !city2) return 0;
   if (city1 === city2) return 0;
 
-  // Symmetric pairing: sort alphabetically and join with dash
   const key = [city1, city2].sort().join('-');
   if (CITY_PAIRS[key] !== undefined) {
     return CITY_PAIRS[key];

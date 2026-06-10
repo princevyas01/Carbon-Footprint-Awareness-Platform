@@ -1,22 +1,7 @@
-/**
- * @file useCarbonData.ts
- * @description Custom hook to aggregate, process, and shape user log and challenge data for dashboard charts and reports.
- *
- * @module Hooks
- * @author CarbonLens Team
- */
-
 import { useMemo } from 'react';
 import { useCarbon } from '../context/CarbonContext';
 import { Category, ChartDataPoint, MonthlyStats, CategoryBreakdown } from '../types';
-import { INDIA_MONTHLY_AVG_KG } from '../lib/constants';
 
-/**
- * Custom hook calculating stats including breakdown percentages, week-over-week trends, lifetime scores, and monthly reports.
- * @returns Object containing stats for monthlyTotal, lastMonthTotal, breakdown maps, comparison data, lifetime stats, and report history.
- * @example
- * const { monthlyTotal, categoryBreakdown } = useCarbonData();
- */
 export function useCarbonData() {
   const { state } = useCarbon();
   const { logs, challenges } = state;
@@ -72,7 +57,7 @@ export function useCarbonData() {
       });
     }
 
-    // 5. Comparison: This Month vs Last Month vs India Average
+    // 5. Comparison: This Month vs Last Month vs India Average (158 kg)
     const lastMonth = currentMonth === 0 ? 11 : currentMonth - 1;
     const lastMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear;
     const lastMonthLogs = logs.filter((log) => {
@@ -83,8 +68,8 @@ export function useCarbonData() {
 
     const comparisonData = [
       { name: 'Last Month', co2: lastMonthTotal, fill: '#8899AA' },
-      { name: 'This Month', co2: monthlyTotal, fill: monthlyTotal > INDIA_MONTHLY_AVG_KG ? '#FF6B6B' : '#00FF87' },
-      { name: 'India Avg', co2: INDIA_MONTHLY_AVG_KG, fill: '#FFB347' },
+      { name: 'This Month', co2: monthlyTotal, fill: monthlyTotal > 158 ? '#FF6B6B' : '#00FF87' },
+      { name: 'India Avg', co2: 158, fill: '#FFB347' },
     ];
 
     // 6. 8-Week Trend Data (emissions per week for last 8 weeks)

@@ -1,11 +1,3 @@
-/**
- * @file Modal.tsx
- * @description General-purpose accessible overlay dialog component with focus trapping, blur effects, and custom content slots.
- *
- * @module Components
- * @author CarbonLens Team
- */
-
 'use client';
 
 import React, { useEffect, useRef } from 'react';
@@ -18,55 +10,48 @@ interface ModalProps {
   children: React.ReactNode;
 }
 
-/**
- * Reusable modal popup with keyboard trap boundaries and Escape closing key listener.
- * @param props - Modal properties including open status, onClose trigger, header title, and children nodes.
- * @returns React modal dialog element, or null if not open.
- */
 export default function Modal({ isOpen, onClose, title, children }: ModalProps) {
   const modalRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLElement | null>(null);
 
   // Handle focus trapping and Escape key
   useEffect(() => {
-    if (!isOpen) {
-      return () => {};
-    }
+    if (isOpen) {
+      triggerRef.current = document.activeElement as HTMLElement;
+      modalRef.current?.focus();
 
-    triggerRef.current = document.activeElement as HTMLElement;
-    modalRef.current?.focus();
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === 'Escape') onClose();
 
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+        // Simple Tab focus trap
+        if (e.key === 'Tab' && modalRef.current) {
+          const focusables = modalRef.current.querySelectorAll(
+            'button, [href], input, select, textarea, [tabindex="0"]'
+          );
+          const firstElement = focusables[0] as HTMLElement;
+          const lastElement = focusables[focusables.length - 1] as HTMLElement;
 
-      // Simple Tab focus trap
-      if (e.key === 'Tab' && modalRef.current) {
-        const focusables = modalRef.current.querySelectorAll(
-          'button, [href], input, select, textarea, [tabindex="0"]'
-        );
-        const firstElement = focusables[0] as HTMLElement;
-        const lastElement = focusables[focusables.length - 1] as HTMLElement;
-
-        if (e.shiftKey) {
-          if (document.activeElement === firstElement) {
-            lastElement.focus();
-            e.preventDefault();
-          }
-        } else {
-          if (document.activeElement === lastElement) {
-            firstElement.focus();
-            e.preventDefault();
+          if (e.shiftKey) {
+            if (document.activeElement === firstElement) {
+              lastElement.focus();
+              e.preventDefault();
+            }
+          } else {
+            if (document.activeElement === lastElement) {
+              firstElement.focus();
+              e.preventDefault();
+            }
           }
         }
-      }
-    };
+      };
 
-    document.addEventListener('keydown', handleKeyDown);
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-      // Return focus to triggering button
-      triggerRef.current?.focus();
-    };
+      document.addEventListener('keydown', handleKeyDown);
+      return () => {
+        document.removeEventListener('keydown', handleKeyDown);
+        // Return focus to triggering button
+        triggerRef.current?.focus();
+      };
+    }
   }, [isOpen, onClose]);
 
   if (!isOpen) return null;

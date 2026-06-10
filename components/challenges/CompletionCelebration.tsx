@@ -1,47 +1,33 @@
-/**
- * @file CompletionCelebration.tsx
- * @description Dialog modal overlay for celebrating successful completion of a sustainability challenge.
- *
- * @module Components
- * @author CarbonLens Team
- */
-
 'use client';
 
 import React, { useEffect, useRef } from 'react';
 import { Trophy, Star, X } from 'lucide-react';
 import { useChallenge } from '../../hooks/useChallenge';
 
-/**
- * Overlay modal celebrating a completed challenge, displaying stats, trophies, and auto-dismissing.
- * @returns React element representing the celebration modal, or null if not active.
- */
 export default function CompletionCelebration() {
   const { celebrationChallenge, dismissCelebration } = useChallenge();
   const closeButtonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
-    if (!celebrationChallenge) {
-      return () => {};
-    }
+    if (celebrationChallenge) {
+      closeButtonRef.current?.focus();
 
-    closeButtonRef.current?.focus();
-
-    const timer = setTimeout(() => {
-      dismissCelebration();
-    }, 5000); // Display for 5 seconds
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
+      const timer = setTimeout(() => {
         dismissCelebration();
-      }
-    };
+      }, 5000); // Display for 5 seconds
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => {
-      clearTimeout(timer);
-      window.removeEventListener('keydown', handleKeyDown);
-    };
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === 'Escape') {
+          dismissCelebration();
+        }
+      };
+
+      window.addEventListener('keydown', handleKeyDown);
+      return () => {
+        clearTimeout(timer);
+        window.removeEventListener('keydown', handleKeyDown);
+      };
+    }
   }, [celebrationChallenge, dismissCelebration]);
 
   if (!celebrationChallenge) return null;
@@ -53,82 +39,75 @@ export default function CompletionCelebration() {
       aria-modal="true"
       aria-labelledby="celebration-title"
     >
-      {/* Background glow effects */}
-      <div className="absolute w-80 h-80 rounded-full bg-[#00FF87]/20 blur-3xl opacity-60 animate-pulse-slow" />
-      <div className="absolute w-60 h-60 rounded-full bg-cyan-500/10 blur-3xl opacity-40 animate-pulse-slow delay-75" />
+      {/* Floating Particles overlay */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        {Array.from({ length: 20 }).map((_, i) => (
+          <div
+            key={i}
+            className="absolute rounded-full bg-green/20 animate-float"
+            style={{
+              top: `${Math.random() * 100}%`,
+              left: `${Math.random() * 100}%`,
+              width: `${Math.random() * 8 + 4}px`,
+              height: `${Math.random() * 8 + 4}px`,
+              animationDelay: `${Math.random() * 5}s`,
+              animationDuration: `${Math.random() * 4 + 4}s`,
+            }}
+          />
+        ))}
+      </div>
 
-      {/* Modal Box */}
-      <div
-        className="relative max-w-md w-full glass-panel border-[#00FF87]/30 border rounded-3xl p-8 text-center shadow-2xl flex flex-col items-center space-y-6 animate-fade-in-up"
-        onClick={(e) => e.stopPropagation()}
+      {/* Glow */}
+      <div className="absolute w-96 h-96 rounded-full aura-glow-green blur-3xl opacity-50 animate-pulse-slow" />
+
+      {/* Main card */}
+      <div 
+        className="relative max-w-md w-full glass-panel border border-green/30 rounded-3xl p-8 text-center shadow-2xl flex flex-col items-center space-y-6 animate-fade-in-up"
       >
-        {/* Close button */}
         <button
-          ref={closeButtonRef}
           onClick={dismissCelebration}
-          className="absolute top-4 right-4 p-2 rounded-xl text-muted hover:text-frost hover:bg-white/5 transition-all duration-200"
-          aria-label="Dismiss celebration"
+          className="absolute top-4 right-4 p-1 rounded-lg text-muted hover:text-frost hover:bg-white/5 transition-colors"
+          aria-label="Close celebration"
         >
           <X className="h-5 w-5" />
         </button>
 
-        {/* Trophies & Icons */}
-        <div className="relative flex items-center justify-center w-20 h-20">
-          <Star className="absolute top-0 left-0 h-6 w-6 text-yellow-400 animate-bounce" />
-          <Trophy className="h-16 w-16 text-[#00FF87] animate-pulse-slow" />
-          <Star className="absolute bottom-0 right-0 h-6 w-6 text-yellow-400 animate-bounce delay-150" />
+        <div className="relative">
+          <div className="absolute inset-0 bg-green/20 blur-xl rounded-full scale-125 animate-pulse" />
+          <div className="relative bg-space border border-border p-4 rounded-full">
+            <Trophy className="h-14 w-14 text-green" />
+          </div>
+          <Star className="absolute -top-1 -right-1 h-5 w-5 text-amber animate-bounce" />
+          <Star className="absolute -bottom-1 -left-1 h-4 w-4 text-amber animate-pulse" />
         </div>
 
-        {/* Header */}
         <div className="space-y-2">
-          <span className="text-xs font-body text-[#00FF87] uppercase tracking-widest font-semibold">
-            Challenge Completed!
+          <span className="text-xs font-data text-green uppercase tracking-widest font-semibold">
+            Mission Accomplished!
           </span>
           <h2 id="celebration-title" className="font-display text-2xl md:text-3xl font-bold text-frost">
-            You crushed it!
+            {celebrationChallenge.name} Completed
           </h2>
         </div>
 
-        {/* Challenge details */}
-        <div className="w-full bg-white/5 border border-border p-4 rounded-2xl space-y-2">
-          <p className="font-display text-lg font-bold text-frost flex items-center justify-center gap-2">
-            <span>{celebrationChallenge.emoji}</span>
-            <span>{celebrationChallenge.name}</span>
+        <div className="p-4 rounded-2xl bg-white/5 border border-border w-full space-y-1">
+          <p className="text-xs text-muted font-body">Carbon footprint saved</p>
+          <p className="text-2xl font-bold font-data text-green">
+            ~{celebrationChallenge.co2SavedPotential} kg CO₂
           </p>
-          <p className="font-body text-xs text-muted">
-            {celebrationChallenge.description}
-          </p>
-        </div>
-
-        {/* Stats card */}
-        <div className="grid grid-cols-2 gap-4 w-full">
-          <div className="bg-[#00FF87]/5 border border-[#00FF87]/10 p-3 rounded-xl">
-            <span className="text-[10px] text-muted uppercase tracking-wider font-semibold font-data">
-              CO₂ Saved
-            </span>
-            <p className="font-data text-base font-bold text-[#00FF87]">
-              {celebrationChallenge.co2SavedPotential} kg
-            </p>
-          </div>
-          <div className="bg-cyan-500/5 border border-cyan-500/10 p-3 rounded-xl">
-            <span className="text-[10px] text-muted uppercase tracking-wider font-semibold font-data">
-              XP Awarded
-            </span>
-            <p className="font-data text-base font-bold text-cyan-400">
-              +50 XP
-            </p>
-          </div>
         </div>
 
         <p className="font-body text-xs text-muted leading-relaxed">
-          Every small action counts. You are helping to drive real carbon reductions!
+          Congratulations! You completed the {celebrationChallenge.duration} challenge, 
+          earning <strong className="text-green">+50 XP</strong> and lowering your footprint!
         </p>
 
         <button
+          ref={closeButtonRef}
           onClick={dismissCelebration}
-          className="w-full py-3 bg-gradient-to-r from-[#00FF87] to-cyan-500 hover:opacity-90 text-void font-display font-bold text-sm rounded-xl transition-all duration-200 shadow-lg"
+          className="w-full py-3 bg-green hover:bg-green-dim text-void font-display font-bold text-sm rounded-xl transition-all duration-200 shadow-lg"
         >
-          Collect Rewards 🎉
+          View Dashboard
         </button>
       </div>
     </div>

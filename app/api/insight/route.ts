@@ -1,39 +1,29 @@
-/**
- * @file route.ts
- * @description API route handler for processing user carbon stats and retrieving generated personal insights from Gemini.
- *
- * @module API
- * @author CarbonLens Team
- */
-
 import { NextRequest, NextResponse } from 'next/server';
-import { AI_RATE_LIMIT_MS } from '../../../lib/constants';
 
-// Rate limiting store (IP mapped to epoch time of last request)
+// Rate limiting store
 const rateLimitMap = new Map<string, number>();
+const RATE_LIMIT_MS = 5 * 60 * 1000; // 5 minutes
 
-/**
- * Handles POST requests to run AI insights on user carbon footprint logs.
- * Includes rate-limiting check and safety fallbacks.
- * @param req - The NextRequest object containing carbon logs and profile data
- * @returns NextResponse with the structured JSON insight, rate limit status, or error code
- */
 export async function POST(req: NextRequest) {
   try {
-    // Rate limiting check
+    // Debug checks for API key
+    console.log('API Key present:', !!process.env.GEMINI_API_KEY);
+    console.log('API Key length:', process.env.GEMINI_API_KEY?.length || 0);
+
+    // Rate limiting
     const ip = req.headers.get('x-forwarded-for') || 'default';
     const lastCall = rateLimitMap.get(ip) || 0;
     const now = Date.now();
     
-    if (now - lastCall < AI_RATE_LIMIT_MS) {
-      const retryAfter = Math.ceil((AI_RATE_LIMIT_MS - (now - lastCall)) / 1000);
+    if (now - lastCall < RATE_LIMIT_MS) {
+      const retryAfter = Math.ceil((RATE_LIMIT_MS - (now - lastCall)) / 1000);
       return NextResponse.json(
         { error: 'Rate limited', retryAfter },
         { status: 429, headers: { 'Retry-After': String(retryAfter) } }
       );
     }
 
-    // Parse request body safely
+    // Parse body
     let body;
     try {
       body = await req.json();
@@ -47,7 +37,7 @@ export async function POST(req: NextRequest) {
     // Check API key exists
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
-      console.error('[API.POST]: GEMINI_API_KEY is not set');
+      console.error('GEMINI_API_KEY is not set');
       return NextResponse.json(
         { error: 'API key not configured' },
         { status: 500 }
@@ -105,7 +95,7 @@ Respond ONLY with a valid JSON object, no markdown, no backticks:
 
     if (!geminiResponse.ok) {
       const errorText = await geminiResponse.text();
-      console.error('[API.POST]: Gemini API error:', geminiResponse.status, errorText);
+      console.error('Gemini API error:', geminiResponse.status, errorText);
       return NextResponse.json(
         { error: `Gemini error: ${geminiResponse.status}` },
         { status: 502 }
@@ -118,7 +108,7 @@ Respond ONLY with a valid JSON object, no markdown, no backticks:
     const rawText = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text || '';
 
     if (!rawText) {
-      console.error('[API.POST]: Empty Gemini response:', geminiData);
+      console.error('Empty Gemini response:', geminiData);
       return NextResponse.json(
         { error: 'Empty response from Gemini' },
         { status: 502 }
@@ -135,7 +125,7 @@ Respond ONLY with a valid JSON object, no markdown, no backticks:
     try {
       insight = JSON.parse(cleaned);
     } catch {
-      console.error('[API.POST]: Failed to parse Gemini response as JSON:', cleaned);
+      console.error('Failed to parse Gemini response as JSON:', cleaned);
       // Return a fallback insight instead of erroring
       insight = {
         observation: `Your total footprint this month is ${Object.values(monthlyTotals).reduce((a: number, b) => a + (b as number), 0).toFixed(1)} kg CO2, with ${topCategory} as your biggest source.`,
@@ -145,13 +135,13 @@ Respond ONLY with a valid JSON object, no markdown, no backticks:
       };
     }
 
-    // Update rate limit timestamp
+    // Update rate limit
     rateLimitMap.set(ip, now);
 
     return NextResponse.json({ insight }, { status: 200 });
 
   } catch (error) {
-    console.error('[API.POST]: Unexpected error during insight generation:', error);
+    console.error('Insight API unexpected error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

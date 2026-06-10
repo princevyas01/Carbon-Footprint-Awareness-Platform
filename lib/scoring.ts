@@ -1,20 +1,11 @@
-/**
- * @file scoring.ts
- * @description In-app gamification engine defining eco-score levels, points metrics for logging events, and level progression logic.
- *
- * @module Gamification
- * @author CarbonLens Team
- */
-
 import { Level } from '../types';
-import { LEVEL_THRESHOLDS as BASE_THRESHOLDS } from './constants';
 
 export const LEVEL_THRESHOLDS = {
-  ROOKIE: { min: BASE_THRESHOLDS.ROOKIE, max: BASE_THRESHOLDS.SPROUT - 1, name: 'Carbon Rookie' as Level, icon: '🌑' },
-  SPROUT: { min: BASE_THRESHOLDS.SPROUT, max: BASE_THRESHOLDS.WARRIOR - 1, name: 'Green Sprout' as Level, icon: '🌿' },
-  WARRIOR: { min: BASE_THRESHOLDS.WARRIOR, max: BASE_THRESHOLDS.CHAMPION - 1, name: 'Eco Warrior' as Level, icon: '🌊' },
-  CHAMPION: { min: BASE_THRESHOLDS.CHAMPION, max: BASE_THRESHOLDS.HERO - 1, name: 'Solar Champion' as Level, icon: '☀️' },
-  HERO: { min: BASE_THRESHOLDS.HERO, max: 1000, name: 'Carbon Zero Hero' as Level, icon: '🌍' },
+  ROOKIE: { min: 0, max: 199, name: 'Carbon Rookie' as Level, icon: '🌑' },
+  SPROUT: { min: 200, max: 399, name: 'Green Sprout' as Level, icon: '🌿' },
+  WARRIOR: { min: 400, max: 599, name: 'Eco Warrior' as Level, icon: '🌊' },
+  CHAMPION: { min: 600, max: 799, name: 'Solar Champion' as Level, icon: '☀️' },
+  HERO: { min: 800, max: 1000, name: 'Carbon Zero Hero' as Level, icon: '🌍' },
 };
 
 export const SCORING_EVENTS = {
@@ -26,20 +17,8 @@ export const SCORING_EVENTS = {
   NO_LOG_48H: -20,
 };
 
-interface LevelDetail {
-  min: number;
-  max: number;
-  name: Level;
-  icon: string;
-}
-
 /**
  * Returns level name, icon, and progress details based on score (0 - 1000).
- * @param score - The user's current gamification score
- * @returns Object describing the level name, icon, score range, progress percentage, and requirements for next tier.
- * @example
- * const levelInfo = getLevelDetails(250);
- * // levelInfo: { level: 'Green Sprout', icon: '🌿', progressPercent: 25.5, ... }
  */
 export function getLevelDetails(score: number): {
   level: Level;
@@ -52,14 +31,14 @@ export function getLevelDetails(score: number): {
 } {
   const clampedScore = Math.min(Math.max(score, 0), 1000);
 
-  let details: LevelDetail = LEVEL_THRESHOLDS.ROOKIE;
-  if (clampedScore >= BASE_THRESHOLDS.HERO) {
+  let details = LEVEL_THRESHOLDS.ROOKIE;
+  if (clampedScore >= 800) {
     details = LEVEL_THRESHOLDS.HERO;
-  } else if (clampedScore >= BASE_THRESHOLDS.CHAMPION) {
+  } else if (clampedScore >= 600) {
     details = LEVEL_THRESHOLDS.CHAMPION;
-  } else if (clampedScore >= BASE_THRESHOLDS.WARRIOR) {
+  } else if (clampedScore >= 400) {
     details = LEVEL_THRESHOLDS.WARRIOR;
-  } else if (clampedScore >= BASE_THRESHOLDS.SPROUT) {
+  } else if (clampedScore >= 200) {
     details = LEVEL_THRESHOLDS.SPROUT;
   }
 
@@ -81,12 +60,6 @@ export function getLevelDetails(score: number): {
 /**
  * Detects if a score change triggers a level up.
  * Returns the new level name if a level up occurred, otherwise null.
- * @param oldScore - Previous score before points were added/deducted
- * @param newScore - New score after update
- * @returns The new level name if user leveled up, or null
- * @example
- * const levelUp = checkLevelUp(190, 210);
- * // levelUp: 'Green Sprout'
  */
 export function checkLevelUp(oldScore: number, newScore: number): Level | null {
   const oldLevel = getLevelDetails(oldScore).level;
