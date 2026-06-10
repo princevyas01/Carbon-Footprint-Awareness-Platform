@@ -1,35 +1,49 @@
+/**
+ * @file LevelUpModal.tsx
+ * @description Dialog modal overlay to notify and celebrate user leveling up in their carbon reduction score.
+ *
+ * @module Components
+ * @author CarbonLens Team
+ */
+
 'use client';
 
 import React, { useEffect, useRef } from 'react';
 import { Award, Sparkles } from 'lucide-react';
 import { useEcoScore } from '../../hooks/useEcoScore';
 
+/**
+ * Overlay modal indicating user level progression, showing their new status level, and playing exit feedback.
+ * @returns React element representing the level-up popup, or null if not active.
+ */
 export default function LevelUpModal() {
   const { levelUpEvent, dismissLevelUp } = useEcoScore();
   const closeButtonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
-    if (levelUpEvent) {
-      // Focus the close button for accessibility
-      closeButtonRef.current?.focus();
-
-      // Auto dismiss after 3.5s
-      const timer = setTimeout(() => {
-        dismissLevelUp();
-      }, 3500);
-
-      const handleKeyDown = (e: KeyboardEvent) => {
-        if (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ') {
-          dismissLevelUp();
-        }
-      };
-      
-      window.addEventListener('keydown', handleKeyDown);
-      return () => {
-        clearTimeout(timer);
-        window.removeEventListener('keydown', handleKeyDown);
-      };
+    if (!levelUpEvent) {
+      return () => {};
     }
+    
+    // Focus the close button for accessibility
+    closeButtonRef.current?.focus();
+
+    // Auto dismiss after 3.5s
+    const timer = setTimeout(() => {
+      dismissLevelUp();
+    }, 3500);
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ') {
+        dismissLevelUp();
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
   }, [levelUpEvent, dismissLevelUp]);
 
   if (!levelUpEvent) return null;

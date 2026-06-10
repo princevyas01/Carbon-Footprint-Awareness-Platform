@@ -1,8 +1,23 @@
+/**
+ * @file notifications.ts
+ * @description Utility functions for examining user logs and active challenges to generate helpful system notifications.
+ *
+ * @module Notifications
+ * @author CarbonLens Team
+ */
+
 import { LogEntry, Challenge, Notification } from '../types';
+import { INDIA_MONTHLY_AVG_KG } from './constants';
 
 /**
  * Checks active logs and challenges to generate smart in-app notifications.
  * Merges new notifications with existing ones to avoid duplicate spams.
+ * @param logs - Array of user activity logs
+ * @param challenges - Array of user challenges
+ * @param existing - Existing list of notifications
+ * @returns Combined and limited array of notifications (max 50)
+ * @example
+ * const updatedNotifs = checkAndGenerateNotifications(logs, challenges, existing);
  */
 export function checkAndGenerateNotifications(
   logs: LogEntry[],
@@ -14,7 +29,7 @@ export function checkAndGenerateNotifications(
   const todayStr = new Date().toISOString().split('T')[0];
 
   // Helper to check if a notification of similar type was already generated today/recently
-  const hasNotificationText = (text: string) => {
+  const hasNotificationText = (text: string): boolean => {
     return existing.some((n) => n.text === text) || newNotifications.some((n) => n.text === text);
   };
 
@@ -37,7 +52,7 @@ export function checkAndGenerateNotifications(
   // 2. Transport emissions rose this week
   // Calculate transport emissions for last 7 days vs previous 7 days
   const oneDayMs = 24 * 60 * 60 * 1000;
-  const getTransportEmissionsInRange = (startDaysAgo: number, endDaysAgo: number) => {
+  const getTransportEmissionsInRange = (startDaysAgo: number, endDaysAgo: number): number => {
     const startMs = now - startDaysAgo * oneDayMs;
     const endMs = now - endDaysAgo * oneDayMs;
     return logs
@@ -151,7 +166,7 @@ export function checkAndGenerateNotifications(
     }
   }
 
-  // 6. Below average: You're below India's average this month! (158 kg)
+  // 6. Below average: You're below India's average this month!
   // Check emissions for current month so far.
   const currentMonthLogs = logs.filter((log) => {
     const logDate = new Date(log.date);
@@ -162,8 +177,8 @@ export function checkAndGenerateNotifications(
   });
   const currentMonthTotal = currentMonthLogs.reduce((sum, log) => sum + log.co2, 0);
 
-  // We notify if we are past mid-month, emissions are below 158 kg, and we haven't notified for this month yet.
-  if (todayDateObj.getDate() >= 15 && currentMonthTotal > 0 && currentMonthTotal < 158) {
+  // We notify if we are past mid-month, emissions are below the average, and we haven't notified for this month yet.
+  if (todayDateObj.getDate() >= 15 && currentMonthTotal > 0 && currentMonthTotal < INDIA_MONTHLY_AVG_KG) {
     const text = "You're below India's average this month! 🌱";
     const notificationId = `below-average-${todayDateObj.getMonth()}-${todayDateObj.getFullYear()}`;
     if (!existing.some((n) => n.id === notificationId) && !newNotifications.some((n) => n.id === notificationId)) {

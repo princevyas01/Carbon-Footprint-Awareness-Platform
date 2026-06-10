@@ -1,3 +1,11 @@
+/**
+ * @file storage.test.ts
+ * @description Unit tests for LocalStorage wrapper operations, checking profiles, streaks, and data exports.
+ *
+ * @module Tests
+ * @author CarbonLens Team
+ */
+
 // @vitest-environment jsdom
 import { describe, test, expect, beforeEach, vi } from 'vitest';
 import { storage } from '../lib/storage';

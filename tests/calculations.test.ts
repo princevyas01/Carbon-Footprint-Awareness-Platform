@@ -1,3 +1,11 @@
+/**
+ * @file calculations.test.ts
+ * @description Unit tests for carbon footprint calculation logic and validation constraints.
+ *
+ * @module Tests
+ * @author CarbonLens Team
+ */
+
 import { describe, test, expect } from 'vitest';
 import {
   calculateTransportEmission,
@@ -6,13 +14,14 @@ import {
   calculateShoppingEmission,
   calculateTravelEmission,
   calculateAnnualBaseline,
-  clampInput,
+  validateInput,
 } from '../lib/calculations';
 
 describe('Carbon Calculations & Input Clamping', () => {
-  test('clampInput normal values', () => {
-    // Note: clampInput was renamed or wrapper matches validateInput in implementation,
-    // let's double check validateInput
+  test('validateInput normal values', () => {
+    expect(validateInput(10, 0, 100)).toBe(10);
+    expect(validateInput(-5, 0, 100)).toBe(0);
+    expect(validateInput(150, 0, 100)).toBe(100);
   });
 
   test('calculateTransportEmission clamping and factors', () => {

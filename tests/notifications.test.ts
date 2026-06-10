@@ -1,6 +1,15 @@
+/**
+ * @file notifications.test.ts
+ * @description Unit tests for the carbon notification engine rules, covering daily reminders, emission warnings, challenge deadlines, and milestones.
+ *
+ * @module Tests
+ * @author CarbonLens Team
+ */
+
 import { describe, test, expect, afterEach, vi } from 'vitest';
 import { checkAndGenerateNotifications } from '../lib/notifications';
 import { LogEntry, Challenge } from '../types';
+import { INDIA_MONTHLY_AVG_KG } from '../lib/constants';
 
 describe('Carbon Notification Engine Rules', () => {
   afterEach(() => {
@@ -142,7 +151,7 @@ describe('Carbon Notification Engine Rules', () => {
         category: 'food',
         date: '2026-06-20',
         description: 'June meal',
-        co2: 45.0, // below Indian average of 158 kg
+        co2: 45.0, // below Indian average
         details: {},
       },
     ];

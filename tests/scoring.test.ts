@@ -1,3 +1,11 @@
+/**
+ * @file scoring.test.ts
+ * @description Unit tests for user experience leveling thresholds and progress calculations.
+ *
+ * @module Tests
+ * @author CarbonLens Team
+ */
+
 import { describe, test, expect } from 'vitest';
 import { checkLevelUp, getLevelDetails } from '../lib/scoring';
 
